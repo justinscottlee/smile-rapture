@@ -1,0 +1,38 @@
+`sudo apt get docker-buildx`
+# This plugin will be used to build images for multiple architectures.
+
+`mkdir image`
+`cd image`
+`mkdir src`
+`touch dockerfile`
+`touch requirements.txt`
+
+# Place source code for python application in ./src
+
+# List required python modules in ./requirements.txt
+# Example:
+`
+flask
+flask_restful
+`
+
+# Fill out ./dockerfile:
+`
+# base docker image https://hub.docker.com/_/python
+FROM python:3.11.5
+
+WORKDIR /code
+
+# install python module dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# copy src/ code to /code container directory
+COPY src/ .
+
+# container start run command
+CMD [ "python", "./main.py" ]
+`
+
+`docker buildx create --use`
+`docker buildx build --push --platform linux/arm64,linux/amd64 --tag 130.191.161.13:5001/registry/hellopython . --output=type=registry,registry.insecure=true`

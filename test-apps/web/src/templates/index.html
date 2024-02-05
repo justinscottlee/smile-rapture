@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+	<title>Test</title>
+</head>
+<body>
+	{% for message in messages %}
+		<p>{{message}}</p>
+	{% endfor %}
+
+	<form method="post">
+		<label for="message">Message: </label>
+		<input type="text" name="message">
+		<input type="submit">
+	</form>
+</body>
+</html>

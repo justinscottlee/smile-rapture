@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SMILE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<div class="navbar">
+    <a class="nav-title" href="/">RAPTURE</a>
+    <nav>
+        <ul>
+            <li><a href="/new">New Experiment</a></li>
+            <li><a href="/status">Experiment Status</a></li>
+            <li><a href="/account">Account</a></li>
+            {% if 'loggedin' in session %}
+                <li><a href="/logout">Log Out</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+<body>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class=flashes>
+                {% for message in messages %}
+                    <li style="color: red">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,146 @@
+{% extends 'layout.html' %}
+{% block content %}
+<form action="/upload_file" method="post" enctype="multipart/form-data">
+    <h2>Submit Experiment</h2>
+    <hr style="margin-top: 20px;margin-bottom: 20px;">
+    <div id="infoSection">
+        <p>Logged in as: {{ name_id }}</p>
+    </div>
+
+    <!-- Nodes Section -->
+    <hr style="margin-top: 20px;margin-bottom: 20px;">
+    <div id="nodesSection" style="">
+        <h3>Nodes</h3>
+        <!-- Container Sections will be appended here -->
+        <div id="containerSections"></div>
+
+        <!-- Button to add new container -->
+        <button type="button" id="addContainerButton" onclick="addContainerSection()">Add Container</button>
+
+    </div>
+
+    <hr style="margin-top: 20px;margin-bottom: 20px;">
+    <div id="submitSection">
+        <input type="submit" value="Upload"><br>
+    </div>
+</form>
+
+<script>
+    let nodeCount = 0;
+
+    function addContainerSection() {
+        nodeCount++;  // Increment the node counter
+        createNodeSection(nodeCount);
+        updateAccordionHeight(container.querySelector('.panel'));
+    }
+
+    function createNodeSection(nodeNumber) {
+        const container = document.createElement('div');
+        container.classList.add('node-container');
+        container.innerHTML = `
+            <button type="button" class="accordion">Node ${nodeNumber}
+                <span class="remove-icon" onclick="removeContainerSection(this)">&#10006;</span>
+            </button>
+
+            <div class="panel">
+                <div class="panel-inner">
+
+               <label for="container-image">Container Image:</label>
+                <select id="container-image" name="container-image[]">
+                    <option value="python:latest">python:latest</option>
+                    <option value="python:3.10-bullseye">python:3.10-bullseye</option>
+                    <option value="python:3.12-bookworm">python:3.12-bookworm</option>
+                    <option value="python:3.11-bookworm">python:3.11-bookworm</option>
+                </select>
+
+                <div class="file-upload-wrapper">
+                    <label for="code-files">source.zip: </label>
+                    <input type="file" id="code-files" name="code-files[]" accept=".zip">
+                </div>
+
+                <div class="file-upload-wrapper">
+                    <label for="req-files">requirements.txt: </label>
+                    <input type="file" id="req-files" name="req-files[]">
+                </div>
+
+                <label for="ports-open">Open Ports (comma-separated, e.g., 80, 443):</label>
+                <input type="text" id="ports-open" name="ports-open[]" placeholder="Enter ports here">
+            </div>
+        </div>
+        `;
+        const containerSections = document.getElementById('containerSections');
+        containerSections.appendChild(container);
+
+        setupAccordion(container);
+    }
+
+    function setupAccordion(container) {
+        container.querySelector('.accordion').addEventListener('click', function (event) {
+            if (event.target.classList.contains('remove-icon')) return; // Prevent accordion toggle when clicking remove icon
+            this.classList.toggle('active');
+            var panel = this.nextElementSibling;
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = null;
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + 'px';
+            }
+        });
+    }
+
+    function removeContainerSection(element) {
+        element.closest('.node-container').remove();
+        updateNodeNumbers();
+    }
+
+    function updateNodeNumbers() {
+        const containers = document.querySelectorAll('.node-container');
+        nodeCount = 0;
+        containers.forEach(container => {
+            nodeCount++;
+            const accordion = container.querySelector('.accordion');
+            accordion.firstChild.nodeValue = `Node ${nodeCount} `;
+        });
+    }
+
+    function updateFileList(inputId, listId) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(listId);
+
+        // Clear the current list
+        list.innerHTML = '';
+
+        // Add each selected file name to the list
+        for (const file of input.files) {
+            const listItem = document.createElement('div');
+            listItem.textContent = file.name;
+            list.appendChild(listItem);
+        }
+
+        // After updating the file list, update the accordion panel's height
+        const panel = document.getElementById(listId).closest('.panel');
+        if (panel) {
+            updateAccordionHeight(panel);
+        }
+    }
+
+    function updateAccordionHeight(accordionPanel) {
+        // Temporarily disable transition to avoid flickering
+        accordionPanel.style.transition = 'none';
+
+        // Set max-height to none to accommodate all content
+        accordionPanel.style.maxHeight = 'none';
+
+        // Force the browser to acknowledge the style change
+        getComputedStyle(accordionPanel).maxHeight;
+
+        // Re-enable the transition
+        accordionPanel.style.transition = '';
+
+        // Now set the max-height to the new scroll height
+        accordionPanel.style.maxHeight = accordionPanel.scrollHeight + "px";
+    }
+
+    // Initialize with one container section
+    addContainerSection();
+</script>
+{% endblock %}
