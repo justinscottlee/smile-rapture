@@ -1,39 +1,46 @@
 import os
-import sqlite3
-import uuid
-
+from functools import wraps
 import subprocess
-import secrets
 import zipfile
 import smile_kube_utils
-import datetime
+import time
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from werkzeug.utils import secure_filename
-from db_space import User, Experiment, ExperimentStatus
+from models import User, Experiment, ResultEntry
+from app.web_utils import create_unique_filename
 
 app = Flask(__name__)
+
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
-app.config['SECRET_KEY'] = secrets.token_urlsafe(16)
+app.config['SECRET_KEY'] = os.urandom(24).hex()
 app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
-db: list[User] = [User("admin", "admin@admin.net", "admin",
-                       [Experiment(0, ExperimentStatus.NOT_READY.value, str(ExperimentStatus.NOT_READY.name),
-                                   "app067355", [9834, 9324, 3234]),
-                        Experiment(1, ExperimentStatus.NOT_READY.value, str(ExperimentStatus.NOT_READY.name),
-                                   "app067355", [9834, 9324, 3234])
-                        ])]
+db: list[User] = [User("admin", "admin@admin.net", "admin", [Experiment(0), Experiment(1)])]
 
 
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@app.context_processor
+def utility_processor():
+    def ts_formatted(ts):
+        return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))
+    return dict(ts_formatted=ts_formatted)
 
 
-def create_unique_filename(filename):
-    now = datetime.datetime.now()
-    return filename + now.strftime("%Y%m%d%H%M%S")
+def auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Redirect if session not logged in
+        if 'loggedin' not in session:
+            return redirect(url_for('login'))
+
+        # Find user account object
+        user = next((u for u in db if u.name_id == session['name_id']), None)
+
+        # If account object is not found, show error page.
+        if not user:
+            return render_template('error.html', err='Invalid session name_id!')
+
+        return f(user, *args, **kwargs)
+
+    return decorated_function
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -52,7 +59,7 @@ def login():
         if acc and (acc.password != password):
             acc = None
 
-        # If account exists in accounts
+        # If account exists and password is correct in accounts
         if acc:
             # Create session data, we can access this data in other routes
             session['loggedin'] = True
@@ -64,7 +71,8 @@ def login():
 
         else:
             # Account doesnt exist or username/password incorrect
-            return render_template('error.html', err='Invalid username/password', back_url=url_for('login'))
+            flash('Invalid username/password')
+            return render_template('login.html')
 
     if 'loggedin' in session:
         return redirect(url_for('account'))
@@ -75,22 +83,21 @@ def login():
 
 @app.route('/upload_results/<int:experiment_id>', methods=['POST'])
 def upload_results(experiment_id: int):
-    if request.method == 'POST':
-        experiment = None
+    experiment = None
 
-        # Search for experiment in db TODO improve
-        for user in db:
-            for exp in user.experiments:
-                if exp.experiment_id == experiment_id:
-                    experiment = exp
+    # TODO improve
+    # Search for experiment in db
+    for user in db:
+        for exp in user.experiments:
+            if exp.experiment_id == experiment_id:
+                experiment = exp
 
-        if experiment is None:
-            jsonify({'error': 'no experiment found'}), 404
+    if experiment is None:
+        return 'No Experiment Found', 404
 
-        print(request.json)
-        experiment.results.append(str(request.json))
+    experiment.results.append(ResultEntry(str(request.json)))
 
-        return 'OK', 200
+    return 'OK', 200
 
 
 # @app.route('/upload_results/<int:experiment_id>', methods=['POST'])
@@ -128,22 +135,9 @@ def upload_results(experiment_id: int):
 
 
 @app.route('/status')
-def status():
-    # Check if user is logged in, otherwise redirect to login
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    # Find user value with matchin session name_id
-    acc = next((u for u in db if u.name_id == session['name_id']), None)
-
-    # If user not found show error value
-    if not acc:
-        return render_template('error.html', err='Invalid session username/password!')
-
-    # Fets user experiments list
-    exps = acc.experiments
-
-    return render_template('status.html', name_id=acc.name_id, exps=exps)
+@auth_required
+def status(user: User):
+    return render_template('status.html', user=user)
 
 
 @app.route('/logout')
@@ -158,50 +152,27 @@ def logout():
 
 
 @app.route('/new')
-def new():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    acc = next((u for u in db if u.name_id == session['name_id']), None)
-
-    if not acc:
-        return render_template('error.html', err='Invalid session data!')
-
-    return render_template('new.html', name_id=acc.name_id, email=acc.email)
+@auth_required
+def new(user: User):
+    return render_template('new.html', user=user)
 
 
 @app.route('/')
-def index():  # put application's code here
-    if request.args.get('uploaded') == "true":
-        flash("File uploaded successfully")
-    elif request.args.get('uploaded') == "false":
-        flash("File upload failed")
-
+def index():
     return render_template("index.html")
 
 
-@app.route('/account')
-def account():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    acc = next((u for u in db if u.name_id == session['name_id']), None)
-
-    if not acc:
-        return render_template('error.html', err='Invalid session username/password!')
-
-    return render_template("account.html", name_id=acc.name_id, email=acc.email, exps=str(len(acc.experiments)))
+@app.route('/account', methods=['GET'])
+@auth_required
+def account(user: User):
+    return render_template("account.html", user=user)
 
 
 @app.route('/upload_file', methods=['POST'])
-def upload_file():
-    acc = next((u for u in db if u.name_id == session['name_id']), None)
-
-    if not acc:
-        return render_template('error.html', err='Invalid session username/password!')
-
-    email = acc.email
-    username = acc.name_id
+@auth_required
+def upload_file(user: User):
+    email = user.email
+    username = user.name_id
 
     python_versions = request.form.getlist('container-image[]')
     code_files_list = request.files.getlist('code-files[]')

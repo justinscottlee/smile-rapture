@@ -11,25 +11,28 @@
         <ul>
             <li><a href="/new">New Experiment</a></li>
             <li><a href="/status">Experiment Status</a></li>
-            <li><a href="/account">Account</a></li>
             {% if 'loggedin' in session %}
+                <li><a href="/account">Account</a></li>
                 <li><a href="/logout">Log Out</a></li>
+            {% else %}
+                <li><a href="/login">Log In</a></li>
             {% endif %}
         </ul>
     </nav>
 </div>
 <body>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul class=flashes>
-                {% for message in messages %}
-                    <li style="color: red">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="message">
+                <div class="message-text">{{ message }}</div>
+                <div class="close-btn" onclick="this.parentElement.style.display='none';">&times;</div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 
-    {% block content %}
-    {% endblock %}
+{% block content %}
+{% endblock %}
 </body>
 </html>

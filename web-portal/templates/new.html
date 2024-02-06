@@ -2,13 +2,9 @@
 {% block content %}
 <form action="/upload_file" method="post" enctype="multipart/form-data">
     <h2>Submit Experiment</h2>
-    <hr style="margin-top: 20px;margin-bottom: 20px;">
-    <div id="infoSection">
-        <p>Logged in as: {{ name_id }}</p>
-    </div>
+    <p>Logged in as: {{ user.name_id }}</p>
 
     <!-- Nodes Section -->
-    <hr style="margin-top: 20px;margin-bottom: 20px;">
     <div id="nodesSection" style="">
         <h3>Nodes</h3>
         <!-- Container Sections will be appended here -->

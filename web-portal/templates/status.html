@@ -1,20 +1,33 @@
 {% extends 'layout.html' %}
 {% block content %}
     <h2>Experiment Status</h2>
-    <p>Logged in as: {{ name_id }}</p>
-    {% if exps %}
+    <p>Logged in as: {{ user.name_id }}</p>
+    {% if user.experiments %}
         <ul class="status-pane-list">
-        {% for exp in exps %}
-            <li class="status-pane-li">
-                <div class="status-pane-div">
-                    <h2>Experiment {{ exp.experiment_id }}</h2>
-                    <h4>Status:</h4>
-                    <p>{{ exp.status_string }}</p>
-                    <h4>Results URI:</h4>
-                    <p>{{ exp.results }}</p>
-                </div>
-            </li>
-        {% endfor %}
+            {% for exp in user.experiments %}
+                <li class="status-pane-li">
+                    <div class="status-pane-div">
+                        <h2>Experiment {{ exp.experiment_id }}</h2>
+                        <h4>Status:</h4>
+                        <p>{{ exp.status.name.lower() }}</p>
+                        <h4>Output Log:</h4>
+                        {% if exp.results %}
+                            {#                            {% for result in exp.results %}#}
+                            {#                                <p>{{ ts_formatted(result.ts) }} : {{ result.data }}</p>#}
+                            {#                            {% endfor %}#}
+                            <div class="terminal">
+                                <div class="log-content">
+                                    {% for result in exp.results %}
+                                        <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p>No results are currently available.</p>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
         </ul>
     {% else %}
         <p>No experiments are currently available.</p>
