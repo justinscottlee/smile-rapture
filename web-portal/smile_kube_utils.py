@@ -72,6 +72,14 @@ def deploy_experiment(experiment: Experiment):
 
     containers = []
 
+    with open("helper-app/smile_app.py", "w") as f:
+        f.seek(0,0)
+        f.write(f"EXPERIMENT_UUID = {experiment.experiment_uuid}")
+
+    smile_container = Container(src_dir="helper-app/src/", python_requirements="helper-app/requirements.txt", registry_tag=experiment.created_by, ports=[5555], status=ContainerStatus.PENDING)
+    __generate_image(smile_container)
+    containers.append(smile_container)
+
     for node in experiment.nodes:
         for container in node.containers:
             __generate_image(container)

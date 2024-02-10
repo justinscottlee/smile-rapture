@@ -1,4 +1,4 @@
-EXPERIMENT_UUID = "ef24a69500bf4327908ab54faaabf39b"
+EXPERIMENT_UUID = "0" # this line will be automatically replaced
 
 import zmq
 import requests
