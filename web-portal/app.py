@@ -16,6 +16,8 @@ app.config['SECRET_KEY'] = os.urandom(24).hex()
 app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
 id_0, id_1 = uuid4().hex, uuid4().hex
+
+config_db: dict = {"valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"]}
 user_db: list[User] = [User("admin", "admin@admin.net", "admin", [id_0, id_1], admin=True)]
 experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(), id_1: Experiment()}
 
@@ -137,7 +139,7 @@ def logout():
 @app.route('/new')
 @auth_required
 def new(user: User):
-    return render_template('new.html', user=user)
+    return render_template('new.html', user=user, valid_images=config_db["valid_images"])
 
 
 @app.route('/')
@@ -206,29 +208,6 @@ def upload_file(user: User):
     os.system("sudo k3s kubectl create -f generated.yaml")
 
     return redirect(url_for('index', uploaded="true"))
-
-
-def build_and_push_docker_image(folder_path):
-    # folder_path = os.path.dirname(folder_path)  # TODO What is this?
-
-    full_image_name = f"{app.config['REGISTRY_URI']}/{create_unique_filename('exp')}:{'latest'}"
-
-    # Initialize docker buildx (if not already done)
-    print("INIT docker buildx")
-    # subprocess.run(['docker', 'buildx', 'create', '--name', 'mybuilder', '--use'], check=True)
-
-    # Build and push the Docker image
-    print("RUN docker buildx BUILD AND PUSH")
-    try:
-        subprocess.run([
-            'docker', 'buildx', 'build',
-            '--platform', 'linux/arm64,linux/amd64',
-            '--tag', full_image_name,
-            '.',
-            '--output=type=registry,registry.insecure=true'
-        ], check=True, cwd=folder_path)
-    except Exception as e:
-        print(f"Error occurred: {e}")
 
 
 if __name__ == '__main__':
