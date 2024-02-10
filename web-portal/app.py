@@ -4,7 +4,8 @@ import subprocess
 import zipfile
 import smile_kube_utils
 import time
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from uuid import UUID, uuid4
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from models import User, Experiment, ResultEntry
 from app.web_utils import create_unique_filename
 
@@ -14,13 +15,25 @@ app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
-db: list[User] = [User("admin", "admin@admin.net", "admin", [Experiment(0), Experiment(1)])]
+id_0, id_1 = uuid4().hex, uuid4().hex
+user_db: list[User] = [User("admin", "admin@admin.net", "admin", [id_0, id_1], admin=True)]
+experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(), id_1: Experiment()}
+
+
+def get_user_experiments(user: User) -> list[tuple[UUID.hex, Experiment or None]]:
+    exp_list = []
+
+    for exp_id in user.experiment_ids:
+        exp_list.append((exp_id, experiment_db[exp_id]))
+
+    return exp_list
 
 
 @app.context_processor
 def utility_processor():
     def ts_formatted(ts):
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))
+
     return dict(ts_formatted=ts_formatted)
 
 
@@ -32,7 +45,7 @@ def auth_required(f):
             return redirect(url_for('login'))
 
         # Find user account object
-        user = next((u for u in db if u.name_id == session['name_id']), None)
+        user = next((u for u in user_db if u.name_id == session['name_id']), None)
 
         # If account object is not found, show error page.
         if not user:
@@ -53,7 +66,7 @@ def login():
         password = request.form['password']
 
         # Check if account exists
-        acc = next((u for u in db if u.name_id == username), None)
+        acc = next((u for u in user_db if u.name_id == username), None)
 
         # Check if password is correct
         if acc and (acc.password != password):
@@ -81,63 +94,32 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/upload_results/<int:experiment_id>', methods=['POST'])
-def upload_results(experiment_id: int):
-    experiment = None
-
-    # TODO improve
-    # Search for experiment in db
-    for user in db:
-        for exp in user.experiments:
-            if exp.experiment_id == experiment_id:
-                experiment = exp
+@app.route('/start/<uuid:experiment_id>', methods=['POST'])
+def upload_results(experiment_id: UUID):
+    experiment = experiment_db[experiment_id.hex]
 
     if experiment is None:
-        return 'No Experiment Found', 404
+        return 'FAILED', 404
 
     experiment.results.append(ResultEntry(str(request.json)))
 
     return 'OK', 200
 
 
-# @app.route('/upload_results/<int:experiment_id>', methods=['POST'])
-# def upload_results(experiment_id: int):
-#     if request.method == 'POST':
-#         experiment = None
-#
-#         # Search for experiment in db TODO improve
-#         for user in db:
-#             for exp in user.experiments:
-#                 if exp.experiment_id == experiment_id:
-#                     experiment = exp
-#
-#         if experiment is None:
-#             jsonify({'error': 'no experiment found'}), 404
-#
-#         # check if the post request has the file part
-#         if 'file' not in request.files:
-#             return jsonify({'error': 'no file found'}), 404
-#
-#         file = request.files['file']
-#         # If the user does not select a file, the browser submits an
-#         # empty file without a filename.
-#         if file.filename == '':
-#             return jsonify({'error': 'no selected file'}), 404
-#
-#         if file and allowed_file(file.filename):
-#             filename = secure_filename(file.filename)
-#             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-#             return jsonify({'error': 'uploaded successfully'}), 200
-#
-#         return jsonify({'error': 'unknown error occurred'}), 404
-#
-#     jsonify({'error': 'post route only '}), 404
-
-
 @app.route('/status')
 @auth_required
 def status(user: User):
-    return render_template('status.html', user=user)
+    return render_template('status.html', user=user, exps=get_user_experiments(user))
+
+
+@app.route('/admin')
+@auth_required
+def admin(user: User):
+    if not user.admin:
+        flash('Error: Account does not have admin permissions')
+        return redirect(url_for('account'))
+
+    return render_template('admin.html', user=user, experiments=experiment_db, users=user_db)
 
 
 @app.route('/logout')
@@ -165,7 +147,7 @@ def index():
 @app.route('/account', methods=['GET'])
 @auth_required
 def account(user: User):
-    return render_template("account.html", user=user)
+    return render_template("account.html", user=user, exps=get_user_experiments(user))
 
 
 @app.route('/upload_file', methods=['POST'])

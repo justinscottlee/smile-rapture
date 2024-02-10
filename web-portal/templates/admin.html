@@ -1,0 +1,30 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <h2>Admin</h2>
+    <div class="status-pane-div">
+        <h3>All Experiments:</h3>
+        <ul class="status-pane-list">
+            {% for uuid, exp in experiments.items() %}
+                <li class="status-pane-li">
+                    <div class="status-pane-div">
+                        <h2>Experiment {{ uuid }}</h2>
+                        <h4>Created By:</h4>
+                        <p>{{ exp.created_by }}</p>
+                        <h4>Status:</h4>
+                        <p>{{ exp.status.name.lower() }}</p>
+                        <h4>Output Log:</h4>
+                        {% if exp.results %}
+                            <div>
+                                {% for result in exp.results %}
+                                    <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No results available.</p>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

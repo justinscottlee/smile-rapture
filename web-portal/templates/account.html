@@ -7,7 +7,7 @@
         <h3>Email:</h3>
         <p>{{ user.email }}</p>
         <h3>Active Experiments:</h3>
-        <p><strong>{{ user.experiments|length }}</strong> : <a href="/status">Check Status</a></p>
+        <p><strong>{{ user.experiment_ids|length }}</strong> : <a href="/status">Check Status</a></p>
 
     </div>
 {% endblock %}

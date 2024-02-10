@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
+from uuid import UUID, uuid4
+import bcrypt
 import time
 
 
@@ -19,18 +21,20 @@ class ResultEntry:
 
 
 @dataclass
+class User:
+    name_id: str
+    email: str
+    password: str
+    experiment_ids: list[UUID.hex] = field(default_factory=list)
+    admin: bool = False
+
+
+@dataclass
 class Experiment:
-    experiment_id: int
+    experiment_name: str = "experiment"
     status: ExperimentStatus = ExperimentStatus.NOT_READY
     registry_tag: str = ""
     port_map: list[int] = field(default_factory=list)
     results: list[ResultEntry] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
-
-
-@dataclass
-class User:
-    name_id: str
-    email: str
-    password: str
-    experiments: list[Experiment] = field(default_factory=list)
+    created_by: str = "none"

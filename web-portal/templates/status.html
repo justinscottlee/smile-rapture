@@ -2,22 +2,19 @@
 {% block content %}
     <h2>Experiment Status</h2>
     <p>Logged in as: {{ user.name_id }}</p>
-    {% if user.experiments %}
+    {% if user.experiment_ids %}
         <ul class="status-pane-list">
-            {% for exp in user.experiments %}
+            {% for exp_tuple in exps %}
                 <li class="status-pane-li">
                     <div class="status-pane-div">
-                        <h2>Experiment {{ exp.experiment_id }}</h2>
+                        <h2>Experiment {{ exp_tuple[0] }}</h2>
                         <h4>Status:</h4>
-                        <p>{{ exp.status.name.lower() }}</p>
+                        <p>{{ exp_tuple[1].status.name.lower() }}</p>
                         <h4>Output Log:</h4>
-                        {% if exp.results %}
-                            {#                            {% for result in exp.results %}#}
-                            {#                                <p>{{ ts_formatted(result.ts) }} : {{ result.data }}</p>#}
-                            {#                            {% endfor %}#}
+                        {% if exp_tuple[1].results %}
                             <div class="terminal">
                                 <div class="log-content">
-                                    {% for result in exp.results %}
+                                    {% for result in exp_tuple[1].results %}
                                         <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
                                     {% endfor %}
                                 </div>

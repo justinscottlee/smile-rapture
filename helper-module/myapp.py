@@ -1,3 +1,3 @@
-import smile_helper
+import smile
 
-smile_helper.log("test")
+smile.log("test")
