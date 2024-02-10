@@ -94,14 +94,15 @@ def login():
     return render_template('login.html')
 
 
-@app.route('/start/<uuid:experiment_id>', methods=['POST'])
-def upload_results(experiment_id: UUID):
-    experiment = experiment_db[experiment_id.hex]
+@app.route('/api/upload/<experiment_id>', methods=['POST'])
+def api_upload(experiment_id: str):
+    experiment = experiment_db[experiment_id]
 
     if experiment is None:
         return 'FAILED', 404
 
     experiment.results.append(ResultEntry(str(request.json)))
+    print(request.json)
 
     return 'OK', 200
 

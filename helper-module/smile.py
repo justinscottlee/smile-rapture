@@ -11,7 +11,7 @@ experiment_start_time = time.time()
 def log(message: str, level="INFO", **data):
     request = {
         "type": "LOG_STRING",
-        "timestamp": time.time(),
+        "timestamp": time.time() - experiment_start_time,
         "level": level,
         "message": message
     }
