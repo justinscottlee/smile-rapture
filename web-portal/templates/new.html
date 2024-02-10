@@ -1,5 +1,163 @@
 {% extends 'layout.html' %}
 {% block content %}
+    <style>
+        .navbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar .nav-title {
+            margin-right: auto;
+            font-size: 1.5em;
+            font-weight: bolder;
+        }
+
+        .navbar li {
+            list-style: none;
+            display: inline-block;
+            padding: 0 20px;
+        }
+
+        .navbar a {
+            text-decoration: none;
+            color: #007bff;
+            transition: all 0.3s ease 0s;
+        }
+
+        .navbar a:hover {
+            color: #b2dfdb;
+        }
+
+        .node-section,
+        .container-section {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .container-section {
+            background: #ffffff;
+        }
+
+        .node-section {
+            background: #f0f0f0;
+        }
+
+        .node-section h4 {
+            margin-top: 0;
+        }
+
+        .file-upload-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        #addNodeButton,
+        .add-container-button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: block;
+        }
+
+        #addNodeButton:hover,
+        .add-container-button:hover {
+            background-color: #0056b3;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .form h2 {
+            margin-top: 0;
+        }
+
+        .accordion {
+            background-color: #dddddd;
+            color: #444;
+            cursor: pointer;
+            padding: 10px;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .accordion.active,
+        .accordion:hover {
+            background-color: #cccccc;
+        }
+
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            border-radius: 0 0 5px 5px;
+        }
+
+        .panel-inner {
+            padding: 20px;
+        }
+
+        .remove-icon {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+            color: #999;
+        }
+
+        .remove-icon:hover {
+            color: #666;
+        }
+
+        input[type="text"],
+        input[type="file"],
+        select {
+            width: auto;
+            padding: 10px;
+            margin: 5px 0 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        /* Add additional styles as needed */
+
+    </style>
     <form action="/upload_file" method="post" enctype="multipart/form-data">
         <h2>Submit Experiment</h2>
         <p>Logged in as: {{ user.name_id }}</p>
@@ -7,10 +165,10 @@
         <!-- Nodes Section -->
         <div id="nodesSection" style="">
             <h3>Nodes</h3>
-            <!-- Container Sections will be appended here -->
-            <div id="containerSections"></div>
-            <!-- Button to add new container -->
-            <button type="button" id="addContainerButton" onclick="addContainerSection()">Add Container</button>
+            <!-- Node Sections will be appended here -->
+            <div id="nodeSections"></div>
+            <!-- Button to add new node -->
+            <button type="button" id="addNodeButton" onclick="addNode()">Add Node</button>
         </div>
 
         <hr style="margin-top: 20px;margin-bottom: 20px;">
@@ -21,119 +179,103 @@
 
     <script>
         let nodeCount = 0;
+        let containerCounts = {};
 
-        function addContainerSection() {
+        function addNode() {
             nodeCount++;  // Increment the node counter
+            containerCounts[nodeCount] = 0;  // Initialize container counter for this node
             createNodeSection(nodeCount);
-            updateAccordionHeight(container.querySelector('.panel'));
         }
 
         function createNodeSection(nodeNumber) {
-            const container = document.createElement('div');
-            container.classList.add('node-container');
-            container.innerHTML = `
-            <button type="button" class="accordion">Node ${nodeNumber}
-                <span class="remove-icon" onclick="removeContainerSection(this)">&#10006;</span>
-            </button>
-
-            <div class="panel">
-                <div class="panel-inner">
-
-               <label for="container-image">Container Image:</label>
-                <select id="container-image" name="container-image[]">
-                    {% for img in valid_images %}
-                        <option value="{{ img }}">{{ img }}</option>
-                    {% endfor %}
-                </select>
-
-                <div class="file-upload-wrapper">
-                    <label for="code-files">source.zip: </label>
-                    <input type="file" id="code-files" name="code-files[]" accept=".zip">
-                </div>
-
-                <div class="file-upload-wrapper">
-                    <label for="req-files">requirements.txt: </label>
-                    <input type="file" id="req-files" name="req-files[]">
-                </div>
-
-                <label for="ports-open">Open Ports (comma-separated, e.g., 80, 443):</label>
-                <input type="text" id="ports-open" name="ports-open[]" placeholder="Enter ports here">
-            </div>
+            const node = document.createElement('div');
+            node.classList.add('node-section');
+            node.id = `node-${nodeNumber}`;
+            node.innerHTML = `
+        <h4>Node ${nodeNumber}</h4>
+        <div>
+            <label for="node-type-${nodeNumber}">Node Type:</label>
+            <select id="node-type-${nodeNumber}" name="node-type-${nodeNumber}">
+                {% for type in node_types %}
+                    <option value="{{ type }}">{{ type }}</option>
+                {% endfor %}
+            </select>
         </div>
-        `;
-            const containerSections = document.getElementById('containerSections');
-            containerSections.appendChild(container);
+        <div class="containers" id="containers-node-${nodeNumber}"></div>
+        <button type="button" onclick="addContainerToNode(${nodeNumber})">Add Container</button>
+    `;
 
-            setupAccordion(container);
+            const nodeSections = document.getElementById('nodeSections');
+            nodeSections.appendChild(node);
+
+            // Automatically add one container to the new node
+            addContainerToNode(nodeNumber);
         }
 
-        function setupAccordion(container) {
-            container.querySelector('.accordion').addEventListener('click', function (event) {
-                if (event.target.classList.contains('remove-icon')) return; // Prevent accordion toggle when clicking remove icon
-                this.classList.toggle('active');
-                var panel = this.nextElementSibling;
-                if (panel.style.maxHeight) {
-                    panel.style.maxHeight = null;
-                } else {
-                    panel.style.maxHeight = panel.scrollHeight + 'px';
+        function addContainerToNode(nodeNumber) {
+            containerCounts[nodeNumber]++;  // Increment container counter for this node
+            const containerNumber = containerCounts[nodeNumber];
+            const containerId = `node-${nodeNumber}-container-${containerNumber}`;
+
+            const containerSection = document.createElement('div');
+            containerSection.classList.add('container-section');
+            containerSection.id = containerId;
+            containerSection.innerHTML = `
+                <span class="remove-icon" onclick="removeContainerSection(this, ${nodeNumber})">&#10006;</span>
+                <h4>Container ${containerNumber}</h4>
+                <div class="container-details">
+                    <label for="container-image-${nodeNumber}">Container Image:</label>
+                    <select id="container-image-${nodeNumber}" name="container-image-${nodeNumber}[]">
+                        {% for img in valid_images %}
+                            <option value="{{ img }}">{{ img }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <div class="file-upload-wrapper">
+                        <label for="code-files-${nodeNumber}">source.zip: </label>
+                        <input type="file" id="code-files-${nodeNumber}" name="code-files-${nodeNumber}[]" accept=".zip">
+                    </div>
+
+                    <div class="file-upload-wrapper">
+                        <label for="req-files-${nodeNumber}">requirements.txt: </label>
+                        <input type="file" id="req-files-${nodeNumber}" name="req-files-${nodeNumber}[]">
+                    </div>
+
+                    <label for="ports-open-${nodeNumber}">Open Ports (comma-separated, e.g., 80, 443):</label>
+                    <input type="text" id="ports-open-${nodeNumber}" name="ports-open-${nodeNumber}[]" placeholder="Enter ports here">
+                </div>
+            `;
+
+            const containersNode = document.getElementById(`containers-node-${nodeNumber}`);
+            containersNode.appendChild(containerSection);
+        }
+
+        function removeContainerSection(element, nodeNumber) {
+            element.closest('.container-section').remove();
+            // Decrement container count for this node
+            containerCounts[nodeNumber]--;
+
+            // Update the numbering for all remaining containers in this node
+            const containersNode = document.getElementById(`containers-node-${nodeNumber}`);
+            const remainingContainers = containersNode.getElementsByClassName('container-section');
+            for (let i = 0; i < remainingContainers.length; i++) {
+                // Update the container number displayed in the UI
+                const containerHeader = remainingContainers[i].querySelector('h4');
+                if (containerHeader) {
+                    containerHeader.textContent = `Container ${i + 1}`;
                 }
-            });
-        }
 
-        function removeContainerSection(element) {
-            element.closest('.node-container').remove();
-            updateNodeNumbers();
-        }
-
-        function updateNodeNumbers() {
-            const containers = document.querySelectorAll('.node-container');
-            nodeCount = 0;
-            containers.forEach(container => {
-                nodeCount++;
-                const accordion = container.querySelector('.accordion');
-                accordion.firstChild.nodeValue = `Node ${nodeCount} `;
-            });
-        }
-
-        function updateFileList(inputId, listId) {
-            const input = document.getElementById(inputId);
-            const list = document.getElementById(listId);
-
-            // Clear the current list
-            list.innerHTML = '';
-
-            // Add each selected file name to the list
-            for (const file of input.files) {
-                const listItem = document.createElement('div');
-                listItem.textContent = file.name;
-                list.appendChild(listItem);
-            }
-
-            // After updating the file list, update the accordion panel's height
-            const panel = document.getElementById(listId).closest('.panel');
-            if (panel) {
-                updateAccordionHeight(panel);
+                // Optionally, update IDs and related attributes if they are used elsewhere
+                // This example assumes IDs and related attributes follow a specific pattern and updates them accordingly
+                remainingContainers[i].id = `node-${nodeNumber}-container-${i + 1}`;
+                const selectElements = remainingContainers[i].querySelectorAll('select, input[type="file"], input[type="text"]');
+                selectElements.forEach(el => {
+                    // Update IDs and names to reflect the new container number
+                    const baseId = el.id.split('-').slice(0, -1).join('-'); // Remove the old number
+                    el.id = `${baseId}-${i + 1}`;
+                    el.setAttribute('name', `${el.getAttribute('name').split('[')[0]}[${i + 1}][]`);
+                });
             }
         }
-
-        function updateAccordionHeight(accordionPanel) {
-            // Temporarily disable transition to avoid flickering
-            accordionPanel.style.transition = 'none';
-
-            // Set max-height to none to accommodate all content
-            accordionPanel.style.maxHeight = 'none';
-
-            // Force the browser to acknowledge the style change
-            getComputedStyle(accordionPanel).maxHeight;
-
-            // Re-enable the transition
-            accordionPanel.style.transition = '';
-
-            // Now set the max-height to the new scroll height
-            accordionPanel.style.maxHeight = accordionPanel.scrollHeight + "px";
-        }
-
-        // Initialize with one container section
-        addContainerSection();
     </script>
 {% endblock %}
