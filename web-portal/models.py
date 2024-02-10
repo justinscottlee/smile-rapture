@@ -49,13 +49,13 @@ class Container:
 @dataclass
 class Node:
     type: NodeType
-    containers: list[Container]
+    containers: list[Container] = field(default_factory=list)
 
 @dataclass
 class Experiment:
     experiment_uuid: str
+    nodes: list[Node] = field(default_factory=list)
     status: ExperimentStatus = ExperimentStatus.NOT_READY
     results: list[ResultEntry] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     created_by: str = "none"
-    nodes: list[Node]

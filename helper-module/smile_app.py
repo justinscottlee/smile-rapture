@@ -1,4 +1,4 @@
-EXPERIMENT_UUID = "8107013c8f744b308740d4c60cd83e2a"
+EXPERIMENT_UUID = "ef24a69500bf4327908ab54faaabf39b"
 
 import zmq
 import requests

@@ -20,7 +20,7 @@ id_0, id_1 = uuid4().hex, uuid4().hex
 config_db: dict = {"valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"],
                    "node_types": ["drone-arm64", "node-arm64", "node-amd64"]}
 user_db: list[User] = [User("admin", "admin@admin.net", "admin", [id_0, id_1], admin=True)]
-experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(), id_1: Experiment()}
+experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(experiment_uuid=id_0), id_1: Experiment(experiment_uuid=id_1)}
 
 
 def get_user_experiments(user: User) -> list[tuple[UUID.hex, Experiment or None]]:
