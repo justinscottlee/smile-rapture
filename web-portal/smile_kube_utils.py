@@ -141,12 +141,15 @@ def update_experiment_status(experiment: Experiment):
             job_list[container.name] = container
 
     for job in jobs.items:
+        # ignore smile-app, because the user can't track this
+        if job.metadata.name == "smile-app":
+            continue
         if job.status.active:
-            job_list[container.name].status = ContainerStatus.RUNNING
+            job_list[job.metadata.name].status = ContainerStatus.RUNNING
         if job.status.succeeded:
-            job_list[container.name].status = ContainerStatus.SUCCEEDED
+            job_list[job.metadata.name].status = ContainerStatus.SUCCEEDED
         if job.status.failed:
-            job_list[container.name].status = ContainerStatus.FAILED
+            job_list[job.metadata.name].status = ContainerStatus.FAILED
 
 
 # below is only for debugging/development
