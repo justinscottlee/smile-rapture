@@ -8,7 +8,7 @@ def init(user_name: str, debug_mode: bool = False):
     debug = debug_mode
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://smile-app.{user_name}:5555")
+    socket.connect(f"tcp://smile-app-svc.{user_name}:5555")
 
 """Log a string message or other arbitrary (key, value) data to the SMILE web portal."""
 def log(message: str, level="INFO", **data):
