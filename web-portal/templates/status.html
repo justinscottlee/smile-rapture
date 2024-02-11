@@ -4,25 +4,37 @@
     <p>Logged in as <strong>{{ user.name_id }}</strong></p>
     {% if user.experiment_ids %}
         <ul class="status-pane-list">
-            {% for exp in experiments %}
+            {% for experiment in experiments %}
                 <li class="status-pane-li">
-                    <div class="status-pane-div" id="experiment-{{ exp.experiment_uuid }}">
+                    <div class="status-pane-div" id="experiment-{{ experiment.experiment_uuid }}">
                         <h2><a style="text-decoration: none"
-                               href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
-                        <p>Created by <strong>{{ exp.created_by }}</strong> at
-                            <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
-                        <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
+                               href="/experiment/{{ experiment.experiment_uuid }}">{{ experiment.experiment_uuid }}</a></h2>
+                        <p>Created by <strong>{{ experiment.created_by }}</strong> at
+                            <strong>{{ ts_formatted(experiment.created_at) }}</strong></p>
+                        <p>Node Count: <strong>{{ experiment.nodes|length }}</strong></p>
                         <h4>Status:</h4>
-                        <div id="status-{{ exp.experiment_uuid }}"
-                             hx-get="/experiment/{{ exp.experiment_uuid }}/status/"
+                        <div id="status-{{ experiment.experiment_uuid }}"
+                             hx-get="/experiment/{{ experiment.experiment_uuid }}/status/"
                              hx-trigger="every 1s" hx-target="this">
-                            Loading status...
+                             <div id="status-{{ experiment.experiment_uuid }}">
+                                <p>{{ experiment.status.name }}</p>
+                            </div>
                         </div>
                         <h4>Output Log:</h4>
-                        <div id="results-{{ exp.experiment_uuid }}" class="terminal"
-                             hx-get="/experiment/{{ exp.experiment_uuid }}/results/" hx-trigger="every 1s"
+                        <div id="results-{{ experiment.experiment_uuid }}" class="terminal"
+                             hx-get="/experiment/{{ experiment.experiment_uuid }}/results/" hx-trigger="every 1s"
                              hx-target="this">
-                            Loading results...
+                             <div id="results-{{ experiment.experiment_uuid }}" class="terminal">
+                                {% if experiment.results %}
+                                    <div class="log-content">
+                                        {% for result in experiment.results %}
+                                            <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p>No results are currently available.</p>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </li>
