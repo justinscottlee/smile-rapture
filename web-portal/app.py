@@ -3,13 +3,19 @@ from functools import wraps
 import zipfile
 import smile_kube_utils
 import time
+from pymongo import MongoClient
 from flask_htmx import HTMX, make_response
 from uuid import UUID, uuid4
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Markup
 from models import User, Experiment, ResultEntry, Node, Container, ContainerStatus
 
+# Flask
 app = Flask(__name__)
 htmx = HTMX(app)
+
+# DB
+client = MongoClient('localhost', 27017)
+db = client.flask_db
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -91,6 +97,44 @@ def login():
 
     # Show the login form with message (if any)
     return render_template('login.html')
+
+
+@app.route('/create_account', methods=['GET', 'POST'])
+def create_account():
+    # Check if user is already logged in
+    if 'loggedin' in session:
+        return redirect(url_for('account'))
+
+    # Check if "username" and "password" POST requests exist (user submitted form)
+    if request.method == 'POST' and 'username' in request.form and 'email' in request.form and 'password' in request.form:
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+
+        # Check if username exists
+        acc = next((u for u in user_db if u.name_id == username), None)
+
+        # If account exists and password is correct
+        if not acc:
+            user = User(username, email, password)
+            user_db.append(user)
+
+            # Create session data, we can access this data in other routes
+            session['loggedin'] = True
+            session['name_id'] = username
+            session['email'] = email
+
+            # Redirect to the page the user originally requested or to the account page
+            next_page = session.pop('next', url_for('account'))  # Use 'account' as the default
+            return redirect(next_page)
+
+        else:
+            # Invalid login attempt
+            msg = Markup(f'Error: Account with username <strong>{username}</strong> already exists')
+            flash(msg)
+
+    # Show the creation form with message (if any)
+    return render_template('create_account.html')
 
 
 @app.route('/api/upload/<experiment_id>', methods=['POST'])

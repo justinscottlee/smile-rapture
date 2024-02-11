@@ -1,13 +1,12 @@
 {% extends 'layout.html' %}
 {% block content %}
-    <h2>Account</h2>
     <div class="status-pane-div">
-        <h3 style="margin-top: 0">Username:</h3>
-        <p>{{ user.name_id }}</p>
-        <h3>Email:</h3>
-        <p>{{ user.email }}</p>
-        <h3>Active Experiments:</h3>
-        <p><strong>{{ user.experiment_ids|length }}</strong> : <a href="/status">Check Status</a></p>
-
+        <h2>Account</h2>
+        <div style="margin-left: 15px">
+            <p>Username: <strong>{{ user.name_id }}</strong></p>
+            <p>Email: <strong>{{ user.email }}</strong></p>
+            <p>Active Experiments: <strong>{{ user.experiment_ids|length }}</strong> : <a href="/status">Check
+                Status</a></p>
+        </div>
     </div>
 {% endblock %}

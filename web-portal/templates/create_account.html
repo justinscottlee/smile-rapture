@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <div class="login">
+        <form action="{{ url_for('create_account') }}" method="post">
+            <h2>Create Account</h2>
+
+            <label for="username">Username</label>
+            <input type="text" name="username" placeholder="Username" id="username" required>
+
+            <label for="email">Email</label>
+            <input type="email" name="email" placeholder="Email" id="email" required>
+
+            <label for="password">Password</label>
+            <input style="margin-bottom: 20px !important;" type="password" name="password" placeholder="Password"
+                   id="password" required>
+
+            <div class="msg">{{ msg }}</div>
+            <input type="submit" value="Create Account">
+            <p>Already have an account? <a href="/login">Login</a></p>
+        </form>
+    </div>
+{% endblock %}

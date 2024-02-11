@@ -39,6 +39,7 @@ class User:
     password: str
     experiment_ids: list[UUID.hex] = field(default_factory=list)
     admin: bool = False
+    created_at: float = field(default_factory=time.time)
 
 
 @dataclass
