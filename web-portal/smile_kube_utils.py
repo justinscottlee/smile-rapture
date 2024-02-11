@@ -61,9 +61,20 @@ def __create_yaml(user_name: str, containers: list):
         file.write(f"      - name: {container.name}\n")
         file.write(f"        image: {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag}\n")
         file.write("        imagePullPolicy: Always\n")
-        file.write("        ports:\n")
+        file.write("---\n")
+        file.write("apiVersion: v1\n")
+        file.write("kind: Service\n")
+        file.write("metadata:\n")
+        file.write("  labels:\n")
+        file.write(f"    k8s-app: {container.name}-svc\n")
+        file.write(f"  name: {container.name}-svc\n")
+        file.write(f"  namespace: {user_name}\n")
+        file.write("spec:\n")
+        file.write("  selector:\n")
+        file.write(f"    k8s-app: {container.name}\n")
+        file.write("  ports:\n")
         for port in container.ports:
-            file.write(f"        - containerPort: {port}\n")
+            file.write(f"  - port: {port}\n")
         file.write("---\n")
 
 def deploy_experiment(experiment: Experiment):
@@ -71,9 +82,11 @@ def deploy_experiment(experiment: Experiment):
 
     containers = []
 
-    with open("../helper-app/smile_app.py", "w") as f:
+    lines = []
+    with open("../helper-app/src/main.py", "r") as f:
         lines = f.readlines()
-        lines[0] = f"EXPERIMENT_UUID = {experiment.experiment_uuid}"
+    with open("../helper-app/src/main.py", "w") as f:
+        lines[0] = f"EXPERIMENT_UUID = \"{experiment.experiment_uuid}\"\n"
         f.writelines(lines)
     smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt", registry_tag="smile-app", ports=[5555], status=ContainerStatus.PENDING, name="smile-app")
     __generate_image(experiment.created_by, smile_container)
