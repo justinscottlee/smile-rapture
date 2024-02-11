@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from uuid import UUID, uuid4
-import bcrypt
 import time
 
 

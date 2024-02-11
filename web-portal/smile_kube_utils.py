@@ -71,10 +71,11 @@ def deploy_experiment(experiment: Experiment):
 
     containers = []
 
-    with open("helper-app/smile_app.py", "w") as f:
-        f.seek(0,0)
-        f.write(f"EXPERIMENT_UUID = {experiment.experiment_uuid}")
-    smile_container = Container(src_dir="helper-app/src/", python_requirements="helper-app/requirements.txt", registry_tag="smile-app", ports=[5555], status=ContainerStatus.PENDING, name="smile-app")
+    with open("../helper-app/smile_app.py", "w") as f:
+        lines = f.readlines()
+        lines[0] = f"EXPERIMENT_UUID = {experiment.experiment_uuid}"
+        f.writelines(lines)
+    smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt", registry_tag="smile-app", ports=[5555], status=ContainerStatus.PENDING, name="smile-app")
     __generate_image(experiment.created_by, smile_container)
     containers.append(smile_container)
 
@@ -86,7 +87,9 @@ def deploy_experiment(experiment: Experiment):
     __create_yaml(experiment.created_by, containers)
     os.system("sudo k3s kubectl create -f generated.yaml")
 
-container = Container("../test-apps/hello-world/src/", "../test-apps/hello-world/requirements.txt", "hello-world", [], ContainerStatus.PENDING, "hello-world")
-nodes = [Node(NodeType.DRONE_ARM64, [container])]
-experiment = Experiment("1234", nodes, ExperimentStatus.NOT_READY, [], time.time(), "admin")
-deploy_experiment(experiment)
+# below is only for debugging/development
+if __name__ == "__main__":
+    container = Container("../test-apps/hello-world/src/", "../test-apps/hello-world/requirements.txt", "hello-world", [], ContainerStatus.PENDING, "hello-world")
+    nodes = [Node(NodeType.DRONE_ARM64, [container])]
+    experiment = Experiment("1234", nodes, ExperimentStatus.NOT_READY, [], time.time(), "admin")
+    deploy_experiment(experiment)
