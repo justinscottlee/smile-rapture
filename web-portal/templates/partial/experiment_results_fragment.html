@@ -1,10 +1,12 @@
 <!-- experiment_results_fragment.html -->
-<div id="results-{{ experiment.experiment_uuid }}" class="terminal">
+<div id="results-{{ experiment.experiment_uuid }}">
     {% if experiment.results %}
-        <div class="log-content">
-            {% for result in experiment.results %}
-                <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
-            {% endfor %}
+        <div class="terminal">
+            <div class="log-content">
+                {% for result in experiment.results %}
+                    <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                {% endfor %}
+            </div>
         </div>
     {% else %}
         <p>No results are currently available.</p>

@@ -18,22 +18,6 @@
                                 <p>Status: <strong>{{ experiment.status.name }}</strong></p>
                             </div>
                         </div>
-                        <h4>Output Log:</h4>
-                        <div id="results-{{ experiment.experiment_uuid }}" class="terminal"
-                             hx-get="/experiment/{{ experiment.experiment_uuid }}/results/" hx-trigger="every 1s"
-                             hx-target="this">
-                            <div id="results-{{ experiment.experiment_uuid }}" class="terminal">
-                                {% if experiment.results %}
-                                    <div class="log-content">
-                                        {% for result in experiment.results %}
-                                            <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% else %}
-                                    <p>No results are currently available.</p>
-                                {% endif %}
-                            </div>
-                        </div>
                     </div>
                 </li>
             {% endfor %}
