@@ -131,6 +131,8 @@ def deploy_experiment(experiment: Experiment):
 
 
 def update_experiment_status(experiment: Experiment):
+    if experiment.status == ExperimentStatus.COMPLETED or experiment.status == ExperimentStatus.STOPPED:
+        return
     kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
     batch_v1 = kubernetes.client.BatchV1Api()
     jobs = batch_v1.list_namespaced_job(experiment.created_by)
@@ -140,16 +142,25 @@ def update_experiment_status(experiment: Experiment):
         for container in node.containers:
             job_list[container.name] = container
 
+    all_jobs_succeeded = True
+    any_jobs_failed = False
     for job in jobs.items:
         # ignore smile-app, because the user can't track this
         if job.metadata.name == "smile-app":
             continue
         if job.status.active:
+            all_jobs_succeeded = False
+            experiment.status = ExperimentStatus.RUNNING
             job_list[job.metadata.name].status = ContainerStatus.RUNNING
         if job.status.succeeded:
             job_list[job.metadata.name].status = ContainerStatus.SUCCEEDED
         if job.status.failed:
             job_list[job.metadata.name].status = ContainerStatus.FAILED
+            any_jobs_failed = True
+    if all_jobs_succeeded:
+        experiment.status = ExperimentStatus.COMPLETED
+    if any_jobs_failed:
+        experiment.status = ExperimentStatus.STOPPED
 
 
 # below is only for debugging/development
