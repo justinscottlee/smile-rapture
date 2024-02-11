@@ -14,14 +14,11 @@ app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
-id_0, id_1 = uuid4().hex, uuid4().hex
-
 config_db: dict = {
     "valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"],
     "node_types": ["drone-arm64", "node-arm64", "node-amd64"]}
-user_db: list[User] = [User("admin", "admin@admin.net", "admin", [id_0, id_1], admin=True)]
-experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(experiment_uuid=id_0, created_by="admin"),
-                                             id_1: Experiment(experiment_uuid=id_1, created_by="admin")}
+user_db: list[User] = [User("admin", "admin@admin.net", "admin", [], admin=True)]
+experiment_db: dict[UUID.hex, Experiment] = {}
 
 
 def get_user_experiments(user: User) -> list[Experiment]:
@@ -114,7 +111,10 @@ def api_upload(experiment_id: str):
 @app.route('/status')
 @auth_required
 def status(user: User):
-    return render_template('status.html', user=user, exps=get_user_experiments(user))
+    experiments = get_user_experiments(user)
+    for experiment in experiments:
+        smile_kube_utils.update_experiment_status(experiment)
+    return render_template('status.html', user=user, exps=experiments)
 
 
 @app.route('/admin')
@@ -232,6 +232,7 @@ def upload_file(user: User):
     # Upload experiment and associate with user
     experiment_db[exp.experiment_uuid] = exp
     user.experiment_ids.append(exp.experiment_uuid)
+    smile_kube_utils.deploy_experiment(exp)
 
     flash(f'Success: Experiment uploaded successfully')
     return redirect(url_for('index'))

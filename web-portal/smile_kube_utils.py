@@ -2,6 +2,7 @@ import os
 import shutil
 from models import *
 import yaml
+import kubernetes
 
 REGISTRY_ADDRESS = "130.191.161.13:5000"
 
@@ -105,6 +106,7 @@ def __create_yaml(user_name: str, containers: list):
 
 
 def deploy_experiment(experiment: Experiment):
+    os.system(f"sudo k3s kubectl delete namespace {experiment.created_by}")
     __create_dockerfile()
 
     containers = []
@@ -126,6 +128,14 @@ def deploy_experiment(experiment: Experiment):
 
     __create_yaml(experiment.created_by, containers)
     os.system("sudo k3s kubectl create -f generated.yaml")
+
+
+def update_experiment_status(experiment: Experiment):
+    kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
+    batch_v1 = kubernetes.client.BatchV1Api()
+    jobs = batch_v1.list_namespaced_job(experiment.created_by)
+    for job in jobs.items:
+        print(job)
 
 
 # below is only for debugging/development
