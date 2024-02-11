@@ -15,13 +15,13 @@
                         <h4>Status:</h4>
                         <div id="status-{{ exp.experiment_uuid }}"
                              hx-get="/experiment/{{ exp.experiment_uuid }}/status/"
-                             hx-trigger="every 5s" hx-swap="outerHTML">
+                             hx-trigger="every 1s" hx-target="this">
                             Loading status...
                         </div>
                         <h4>Output Log:</h4>
                         <div id="results-{{ exp.experiment_uuid }}" class="terminal"
-                             hx-get="/experiment/{{ exp.experiment_uuid }}/results/" hx-trigger="every 10s"
-                             hx-swap="outerHTML">
+                             hx-get="/experiment/{{ exp.experiment_uuid }}/results/" hx-trigger="every 1s"
+                             hx-target="this">
                             Loading results...
                         </div>
                     </div>
