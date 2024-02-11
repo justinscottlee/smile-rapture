@@ -121,7 +121,7 @@ def status(user: User):
 # Route to update experiment status dynamically
 @app.route('/experiment/<experiment_id>/status/')
 @auth_required
-def get_experiment_status(experiment_id: UUID.hex):
+def get_experiment_status(user: User, experiment_id: UUID.hex):
     experiment = experiment_db.get(experiment_id)
 
     if experiment is None:
