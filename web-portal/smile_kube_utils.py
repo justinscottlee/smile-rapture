@@ -1,8 +1,10 @@
 import os
 import shutil
 from models import *
+import yaml
 
 REGISTRY_ADDRESS = "130.191.161.13:5000"
+
 
 def __create_dockerfile():
     f = open("dockerfile", "w")
@@ -13,6 +15,7 @@ def __create_dockerfile():
     f.write("COPY src/ .\n")
     f.write("CMD [ \"python\", \"./main.py\" ]")
     f.close()
+
 
 def __generate_image(user_name: str, container: Container):
     # remove remnants of previous container
@@ -32,51 +35,74 @@ def __generate_image(user_name: str, container: Container):
     # build and push container image
     os.system(f"docker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
 
+
 def __create_yaml(user_name: str, containers: list):
-    file = open("generated.yaml", "w")
-    file.write("apiVersion: v1\n")
-    file.write("kind: Namespace\n")
-    file.write("metadata:\n")
-    file.write(f"  name: {user_name}\n")
-    file.write("---\n")
+    documents = [{
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+            "name": user_name
+        }
+    }]
+    
+    # Loop through each container to create Jobs
     for container in containers:
-        file.write("apiVersion: apps/v1\n")
-        file.write("kind: Deployment\n")
-        file.write("metadata:\n")
-        file.write("  labels:\n")
-        file.write(f"    k8s-app: {container.name}\n")
-        file.write(f"  name: {container.name}\n")
-        file.write(f"  namespace: {user_name}\n")
-        file.write("spec:\n")
-        file.write("  selector:\n")
-        file.write("    matchLabels:\n")
-        file.write(f"      k8s-app: {container.name}\n")
-        file.write(f"  replicas: 1\n")
-        file.write("  template:\n")
-        file.write("    metadata:\n")
-        file.write("      labels:\n")
-        file.write(f"        k8s-app: {container.name}\n")
-        file.write("    spec:\n")
-        file.write("      containers:\n")
-        file.write(f"      - name: {container.name}\n")
-        file.write(f"        image: {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag}\n")
-        file.write("        imagePullPolicy: Always\n")
-        file.write("---\n")
+        job_document = {
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "metadata": {
+                "name": container.name,
+                "namespace": user_name,
+                "labels": {
+                    "k8s-app": container.name
+                },
+            },
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "k8s-app": container.name
+                        }
+                    },
+                    "spec": {
+                        "containers": [{
+                            "name": container.name,
+                            "image": f"{REGISTRY_ADDRESS}/{user_name}/{container.registry_tag}",
+                            "imagePullPolicy": "Always"
+                        }],
+                        "restartPolicy": "Never"
+                    }
+                },
+                "backoffLimit": 0
+            }
+        }
+        documents.append(job_document)
+        
+        # Service document if container has ports
         if len(container.ports) > 0:
-            file.write("apiVersion: v1\n")
-            file.write("kind: Service\n")
-            file.write("metadata:\n")
-            file.write("  labels:\n")
-            file.write(f"    k8s-app: {container.name}-svc\n")
-            file.write(f"  name: {container.name}-svc\n")
-            file.write(f"  namespace: {user_name}\n")
-            file.write("spec:\n")
-            file.write("  selector:\n")
-            file.write(f"    k8s-app: {container.name}\n")
-            file.write("  ports:\n")
-            for port in container.ports:
-                file.write(f"  - port: {port}\n")
-            file.write("---\n")
+            service_document = {
+                "apiVersion": "v1",
+                "kind": "Service",
+                "metadata": {
+                    "name": f"{container.name}-svc",
+                    "namespace": user_name,
+                    "labels": {
+                        "k8s-app": f"{container.name}-svc"
+                    },
+                },
+                "spec": {
+                    "selector": {
+                        "k8s-app": container.name
+                    },
+                    "ports": [{"port": port} for port in container.ports]
+                }
+            }
+            documents.append(service_document)
+    
+    # Write to YAML file
+    with open("generated.yaml", "w") as file:
+        yaml.dump_all(documents, file)
+
 
 def deploy_experiment(experiment: Experiment):
     __create_dockerfile()
@@ -100,6 +126,7 @@ def deploy_experiment(experiment: Experiment):
 
     __create_yaml(experiment.created_by, containers)
     os.system("sudo k3s kubectl create -f generated.yaml")
+
 
 # below is only for debugging/development
 if __name__ == "__main__":
