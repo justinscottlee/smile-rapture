@@ -6,21 +6,33 @@
                 <h2>{{ experiment.experiment_uuid }}</h2>
                 <p>Created by <strong>{{ experiment.created_by }}</strong> at
                     <strong>{{ ts_formatted(experiment.created_at) }}</strong></p>
-                <p>Status: <strong>{{ experiment.status.name }}</strong></p>
+
+                <div id="status-{{ experiment.experiment_uuid }}"
+                     hx-get="/experiment/{{ experiment.experiment_uuid }}/status/"
+                     hx-trigger="every 1s" hx-target="this">
+                    <div id="status-{{ experiment.experiment_uuid }}">
+                        <p>Status: <strong>{{ experiment.status.name }}</strong></p>
+                    </div>
+                </div>
+
                 <p>Node Count: <strong>{{ experiment.nodes|length }}</strong></p>
 
                 <h4>Output Log:</h4>
-                {% if experiment.results %}
-                    <div class="terminal">
-                        <div class="log-content">
-                            {% for result in experiment.results %}
-                                <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
-                            {% endfor %}
-                        </div>
+                <div id="results-{{ experiment.experiment_uuid }}" class="terminal"
+                     hx-get="/experiment/{{ experiment.experiment_uuid }}/results/" hx-trigger="every 1s"
+                     hx-target="this">
+                    <div id="results-{{ experiment.experiment_uuid }}" class="terminal">
+                        {% if experiment.results %}
+                            <div class="log-content">
+                                {% for result in experiment.results %}
+                                    <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>No results are currently available.</p>
+                        {% endif %}
                     </div>
-                {% else %}
-                    <p>No results are currently available.</p>
-                {% endif %}
+                </div>
             </div>
         </li>
         {% for node in experiment.nodes %}

@@ -121,7 +121,7 @@ def status(user: User):
 # Route to update experiment status dynamically
 @app.route('/experiment/<experiment_id>/status/')
 @auth_required
-def get_experiment_status(user: User, experiment_id: UUID.hex):
+def get_experiment_status(experiment_id: UUID.hex):
     experiment = experiment_db.get(experiment_id)
 
     if experiment is None:
@@ -289,7 +289,7 @@ def upload_file(user: User):
     smile_kube_utils.deploy_experiment(exp)
 
     flash(f'Success: Experiment uploaded successfully')
-    return redirect(url_for('index'))
+    return redirect(url_for('show_experiment', experiment_id=exp.experiment_uuid))
 
 
 if __name__ == '__main__':
