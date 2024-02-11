@@ -134,8 +134,19 @@ def update_experiment_status(experiment: Experiment):
     kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
     batch_v1 = kubernetes.client.BatchV1Api()
     jobs = batch_v1.list_namespaced_job(experiment.created_by)
+
+    job_list: dict[str, Container] = {}
+    for node in experiment.nodes:
+        for container in node.containers:
+            job_list[container.name] = container
+
     for job in jobs.items:
-        print(job)
+        if job.status.active:
+            job_list[container.name].status = ContainerStatus.RUNNING
+        if job.status.succeeded:
+            job_list[container.name].status = ContainerStatus.SUCCEEDED
+        if job.status.failed:
+            job_list[container.name].status = ContainerStatus.FAILED
 
 
 # below is only for debugging/development
