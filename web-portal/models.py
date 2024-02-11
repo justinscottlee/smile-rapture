@@ -48,7 +48,7 @@ class Container:
     registry_tag: str  # unique name for this container image
     ports: list[int]  # list of ports to open within kubernetes network for inter-container communication
     status: ContainerStatus
-    name: str # user-defined container name
+    name: str  # user-defined container name
 
 
 @dataclass

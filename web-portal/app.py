@@ -7,7 +7,6 @@ import time
 from uuid import UUID, uuid4
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from models import User, Experiment, ResultEntry, Node, Container, ContainerStatus
-from app.web_utils import create_unique_filename
 
 app = Flask(__name__)
 
@@ -226,7 +225,7 @@ def upload_file(user: User):
             port_list = [int(port) for port in ports_open.split(',') if port]
 
             cont = Container(src_dir=src_path, python_requirements=req_file_path, registry_tag=reg_tag,
-                             ports=port_list, status=ContainerStatus.PENDING)  # TODO add name
+                             ports=port_list, status=ContainerStatus.PENDING, name=name)  # TODO add name
 
             exp.nodes[node_id - 1].containers.append(cont)
 
