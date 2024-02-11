@@ -6,7 +6,7 @@ import smile_kube_utils
 import time
 from uuid import UUID, uuid4
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
-from models import User, Experiment, ResultEntry
+from models import User, Experiment, ResultEntry, Node, Container, ContainerStatus
 from app.web_utils import create_unique_filename
 
 app = Flask(__name__)
@@ -17,17 +17,19 @@ app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
 id_0, id_1 = uuid4().hex, uuid4().hex
 
-config_db: dict = {"valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"],
-                   "node_types": ["drone-arm64", "node-arm64", "node-amd64"]}
+config_db: dict = {
+    "valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"],
+    "node_types": ["drone-arm64", "node-arm64", "node-amd64"]}
 user_db: list[User] = [User("admin", "admin@admin.net", "admin", [id_0, id_1], admin=True)]
-experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(experiment_uuid=id_0), id_1: Experiment(experiment_uuid=id_1)}
+experiment_db: dict[UUID.hex, Experiment] = {id_0: Experiment(experiment_uuid=id_0, created_by="admin"),
+                                             id_1: Experiment(experiment_uuid=id_1, created_by="admin")}
 
 
-def get_user_experiments(user: User) -> list[tuple[UUID.hex, Experiment or None]]:
+def get_user_experiments(user: User) -> list[Experiment]:
     exp_list = []
 
     for exp_id in user.experiment_ids:
-        exp_list.append((exp_id, experiment_db[exp_id]))
+        exp_list.append(experiment_db[exp_id])
 
     return exp_list
 
@@ -140,7 +142,8 @@ def logout():
 @app.route('/new')
 @auth_required
 def new(user: User):
-    return render_template('new.html', user=user, node_types=config_db["node_types"], valid_images=config_db["valid_images"])
+    return render_template('new.html', user=user, node_types=config_db["node_types"],
+                           valid_images=config_db["valid_images"])
 
 
 @app.route('/')
@@ -157,58 +160,82 @@ def account(user: User):
 @app.route('/upload_file', methods=['POST'])
 @auth_required
 def upload_file(user: User):
-    email = user.email
-    username = user.name_id
+    print(request.form)
 
-    python_versions = request.form.getlist('container-image[]')
-    code_files_list = request.files.getlist('code-files[]')
-    req_file_list = request.files.getlist('req-files[]')
-    ports_list = request.form.getlist('ports-open[]')
+    node_count = int(request.form.get('nodeCount'))
 
-    print(python_versions)
-    print(code_files_list)
-    print(req_file_list)
+    if node_count <= 0:
+        flash('Error: No nodes specified')
+        return redirect(url_for('new'))
 
-    kube_apps = []
+    exp = Experiment(experiment_uuid=str(uuid4()), created_by=user.name_id, created_at=time.time())
+    experiment_base_path = os.path.join(app.config['UPLOAD_FOLDER'], exp.experiment_uuid + "/")
 
-    for i, req_file in enumerate(req_file_list):
-        app_directory = os.path.join(app.config['UPLOAD_FOLDER'], f"app{i}")
+    if not os.path.exists(experiment_base_path):
+        os.makedirs(experiment_base_path)
+    else:
+        flash(f'Error: Experiment UUID dir already exists')
+        return redirect(url_for('new'))
 
-        if not os.path.exists(app_directory):
-            os.mkdir(app_directory)
+    for node_id in range(1, node_count + 1):
+        container_count = int(request.form.get(f'containerCountNode{node_id}'))
+        node_type = str(request.form.get(f'node-type-{node_id}'))
 
-        src_directory = os.path.join(app_directory, "src/")
-        if not os.path.exists(src_directory):
-            os.mkdir(src_directory)
+        if container_count <= 0:
+            flash(f'Error: Container count wrongly specified in node{node_id}')
+            return redirect(url_for('new'))
 
-        req_file_path = os.path.join(app_directory, "requirements.txt")
-        req_file.save(req_file_path)
+        exp.nodes.append(Node(node_type))
 
-        src_archive_path = os.path.join(src_directory, "src.zip")
-        code_files_list[i].save(src_archive_path)
-        with zipfile.ZipFile(src_archive_path, 'r') as zip_ref:
-            zip_ref.extractall(src_directory)
-        os.remove(src_archive_path)
+        for container_id in range(1, container_count + 1):
+            name = str(request.form.getlist(f'container-name-{node_id}')[container_id - 1]).strip()
+            container_image = str(request.form.getlist(f'container-image-{node_id}')[container_id - 1]).strip()
+            ports_open = str(request.form.getlist(f'ports-open-{node_id}')[container_id - 1]).strip().replace(" ", "")
 
-        ports_list[i].replace(" ", "")
-        split_ports = ports_list[i].split(',')
-        kube_ports = []
-        for port in split_ports:
-            kube_ports.append(smile_kube_utils.Port(int(port), int(port) + 26000))
+            source_zip_file = request.files.getlist(f'code-files-{node_id}')[container_id - 1]
+            req_file = request.files.getlist(f'req-files-{node_id}')[container_id - 1]
 
-        kube_apps.append(smile_kube_utils.Application(
-            src_dir=src_directory,
-            requirements=req_file_path,
-            registry_tag=f"app{i}",
-            ports=kube_ports
-        ))
+            if container_image is None or ports_open is None or source_zip_file is None or req_file is None:
+                flash(
+                    f'Error: Form upload failed. Types - container_image: {type(container_image)}, ports_open: {type(ports_open)}, source_zip_file: {type(source_zip_file)}, req_file: {type(req_file)}')
+                return redirect(url_for('new'))
 
-    smile_kube_utils.generate_images(kube_apps)
-    smile_kube_utils.create_yaml(username, kube_apps)
+            reg_tag = str(uuid4())
+            container_base_path = os.path.join(experiment_base_path, reg_tag + "/")
+            src_path = os.path.join(container_base_path, "src/")
+            src_zip_path = os.path.join(src_path, "src.zip")
+            req_file_path = os.path.join(container_base_path, "requirements.txt")
 
-    os.system("sudo k3s kubectl create -f generated.yaml")
+            if not os.path.exists(container_base_path) or not os.path.exists(src_path):
+                os.makedirs(container_base_path)
+                os.makedirs(src_path)
+            else:
+                flash(f'Error: Container UUID dir already exists')
+                return redirect(url_for('new'))
 
-    return redirect(url_for('index', uploaded="true"))
+            try:
+                req_file.save(req_file_path)
+                source_zip_file.save(src_zip_path)
+                with zipfile.ZipFile(src_zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(src_path)
+                os.remove(src_zip_path)
+            except Exception as e:
+                flash(f'Error: {str(e)}')
+                return redirect(url_for('new'))
+
+            port_list = [int(port) for port in ports_open.split(',') if port]
+
+            cont = Container(src_dir=src_path, python_requirements=req_file_path, registry_tag=reg_tag,
+                             ports=port_list, status=ContainerStatus.PENDING)  # TODO add name
+
+            exp.nodes[node_id - 1].containers.append(cont)
+
+    # Upload experiment and associate with user
+    experiment_db[exp.experiment_uuid] = exp
+    user.experiment_ids.append(exp.experiment_uuid)
+
+    flash(f'Success: Experiment uploaded successfully')
+    return redirect(url_for('index'))
 
 
 if __name__ == '__main__':

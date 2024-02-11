@@ -9,3 +9,4 @@ docs/_build/
 dist/
 venv/
 .DS_STORE
+web-portal/uploads

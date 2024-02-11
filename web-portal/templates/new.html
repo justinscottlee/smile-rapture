@@ -57,7 +57,7 @@
         .file-upload-wrapper {
             display: flex;
             flex-direction: row;
-            align-items: flex-start;
+            align-items: baseline;
             gap: 20px;
         }
 
@@ -155,10 +155,21 @@
             background-color: #0056b3;
         }
 
+        label {
+            pointer-events: none;
+            margin-top: 0;
+        }
+
         /* Add additional styles as needed */
 
     </style>
     <form action="/upload_file" method="post" enctype="multipart/form-data">
+        <input type="hidden" id="nodeCountField" name="nodeCount" value="0">
+
+        <!-- Placeholder for container count fields -->
+        <div id="containerCountFields"></div>
+
+
         <h2>Submit Experiment</h2>
         <p>Logged in as: {{ user.name_id }}</p>
 
@@ -184,6 +195,19 @@
         function addNode() {
             nodeCount++;  // Increment the node counter
             containerCounts[nodeCount] = 0;  // Initialize container counter for this node
+
+            // Update the node count field
+            document.getElementById('nodeCountField').value = nodeCount;
+
+            // Add a hidden field for the new node's container count
+            const containerCountField = document.createElement('input');
+            containerCountField.setAttribute('type', 'hidden');
+            containerCountField.setAttribute('id', `containerCountNode${nodeCount}`);
+            containerCountField.setAttribute('name', `containerCountNode${nodeCount}`);
+            containerCountField.value = 0; // Initial container count for this node is 0
+
+            document.getElementById('containerCountFields').appendChild(containerCountField);
+
             createNodeSection(nodeCount);
         }
 
@@ -224,8 +248,11 @@
                 <span class="remove-icon" onclick="removeContainerSection(this, ${nodeNumber})">&#10006;</span>
                 <h4>Container ${containerNumber}</h4>
                 <div class="container-details">
+                    <label for="container-name-${nodeNumber}">Container Name:</label>
+                    <input type="text" id="container-name-${nodeNumber}" name="container-name-${nodeNumber}" placeholder="Enter unique container name">
+
                     <label for="container-image-${nodeNumber}">Container Image:</label>
-                    <select id="container-image-${nodeNumber}" name="container-image-${nodeNumber}[]">
+                    <select id="container-image-${nodeNumber}" name="container-image-${nodeNumber}">
                         {% for img in valid_images %}
                             <option value="{{ img }}">{{ img }}</option>
                         {% endfor %}
@@ -233,21 +260,48 @@
 
                     <div class="file-upload-wrapper">
                         <label for="code-files-${nodeNumber}">source.zip: </label>
-                        <input type="file" id="code-files-${nodeNumber}" name="code-files-${nodeNumber}[]" accept=".zip">
+                        <input type="file" id="code-files-${nodeNumber}" name="code-files-${nodeNumber}" accept=".zip">
                     </div>
 
                     <div class="file-upload-wrapper">
                         <label for="req-files-${nodeNumber}">requirements.txt: </label>
-                        <input type="file" id="req-files-${nodeNumber}" name="req-files-${nodeNumber}[]">
+                        <input type="file" id="req-files-${nodeNumber}" name="req-files-${nodeNumber}">
                     </div>
 
                     <label for="ports-open-${nodeNumber}">Open Ports (comma-separated, e.g., 80, 443):</label>
-                    <input type="text" id="ports-open-${nodeNumber}" name="ports-open-${nodeNumber}[]" placeholder="Enter ports here">
+                    <input type="text" id="ports-open-${nodeNumber}" name="ports-open-${nodeNumber}" placeholder="Enter ports here">
                 </div>
             `;
 
             const containersNode = document.getElementById(`containers-node-${nodeNumber}`);
             containersNode.appendChild(containerSection);
+
+            // Update the container count for this node
+            document.getElementById(`containerCountNode${nodeNumber}`).value = containerCounts[nodeNumber];
+
+            // New code: Check for uniqueness of the container name
+            const containerNameInput = document.querySelector(`#container-name-${nodeNumber}`);
+            containerNameInput.addEventListener('blur', function () {
+                checkContainerNameUniqueness(this);
+            });
+        }
+
+        function checkContainerNameUniqueness(inputElement) {
+            const allContainerNameInputs = document.querySelectorAll('[id^="container-name-"]');
+            const currentName = inputElement.value.trim();
+            let isUnique = true;
+
+            allContainerNameInputs.forEach(input => {
+                if (input !== inputElement && input.value.trim() === currentName) {
+                    isUnique = false;
+                }
+            });
+
+            if (!isUnique) {
+                alert('Container name must be unique. Please choose a different name.');
+                inputElement.value = ''; // Clear the input to prompt the user for a new name
+                inputElement.focus(); // Bring focus back to the input for user correction
+            }
         }
 
         function removeContainerSection(element, nodeNumber) {
@@ -273,9 +327,12 @@
                     // Update IDs and names to reflect the new container number
                     const baseId = el.id.split('-').slice(0, -1).join('-'); // Remove the old number
                     el.id = `${baseId}-${i + 1}`;
-                    el.setAttribute('name', `${el.getAttribute('name').split('[')[0]}[${i + 1}][]`);
+                    el.setAttribute('name', `${el.getAttribute('name').split('[')[0]}[${i + 1}]`);
                 });
             }
+
+            // Update the container count for this node
+            document.getElementById(`containerCountNode${nodeNumber}`).value = containerCounts[nodeNumber];
         }
     </script>
 {% endblock %}
