@@ -1,14 +1,15 @@
 import os
 from functools import wraps
-import subprocess
 import zipfile
 import smile_kube_utils
 import time
+from flask_htmx import HTMX, make_response
 from uuid import UUID, uuid4
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from models import User, Experiment, ResultEntry, Node, Container, ContainerStatus
 
 app = Flask(__name__)
+htmx = HTMX(app)
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -110,9 +111,45 @@ def api_upload(experiment_id: UUID.hex):
 @auth_required
 def status(user: User):
     experiments = get_user_experiments(user)
+
     for experiment in experiments:
         smile_kube_utils.update_experiment_status(experiment)
+
     return render_template('status.html', user=user, experiments=experiments)
+
+
+# Route to update experiment status dynamically
+@app.route('/experiment/<experiment_id>/status')
+@auth_required
+def get_experiment_status(user: User, experiment_id: UUID.hex):
+    experiment = experiment_db.get(experiment_id)
+
+    if experiment is None:
+        # If the experiment_id is not found, return a 404 error
+        return jsonify({'error': 'Experiment not found'}), 404
+
+    smile_kube_utils.update_experiment_status(experiment)
+
+    # Render only the status part of the experiment
+    fragment = render_template('partial/experiment_status_fragment.html', experiment=experiment)
+    return make_response(fragment, push_url=False)
+
+
+# Route to update experiment results dynamically
+@app.route('/experiment/<experiment_id>/results/')
+@auth_required
+def get_experiment_results(user: User, experiment_id: UUID.hex):
+    experiment = experiment_db.get(experiment_id)
+
+    if experiment is None:
+        # If the experiment_id is not found, return a 404 error
+        return jsonify({'error': 'Experiment not found'}), 404
+
+    smile_kube_utils.update_experiment_status(experiment)
+
+    # Render only the results part of the experiment
+    fragment = render_template('partial/experiment_results_fragment.html', experiment=experiment)
+    return make_response(fragment, push_url=False)
 
 
 @app.route('/admin')
