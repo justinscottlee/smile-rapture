@@ -85,3 +85,8 @@ def deploy_experiment(experiment: Experiment):
 
     __create_yaml(experiment.created_by, containers)
     os.system("sudo k3s kubectl create -f generated.yaml")
+
+container = Container("../test-apps/hello-world/src/", "../test-apps/hello-world/requirements.txt", "hello-world", [], ContainerStatus.PENDING, "hello-world")
+nodes = [Node(NodeType.DRONE_ARM64, [container])]
+experiment = Experiment("1234", nodes, ExperimentStatus.NOT_READY, [], time.time(), "admin")
+deploy_experiment(experiment)
