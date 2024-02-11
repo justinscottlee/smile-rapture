@@ -112,7 +112,7 @@ def status(user: User):
     experiments = get_user_experiments(user)
     for experiment in experiments:
         smile_kube_utils.update_experiment_status(experiment)
-    return render_template('status.html', user=user, exps=experiments)
+    return render_template('status.html', user=user, experiments=experiments)
 
 
 @app.route('/admin')
@@ -138,6 +138,8 @@ def show_experiment(experiment_id: str):
     if exp is None:
         flash('Error: Experiment not found')
         return redirect(url_for('index'))
+
+    smile_kube_utils.update_experiment_status(exp)
 
     return render_template('experiment.html', experiment=exp)
 
