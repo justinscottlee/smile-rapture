@@ -2,25 +2,28 @@
 {% block content %}
     <h2>Admin</h2>
     <div class="status-pane-div">
-        <h3>All Experiments:</h3>
+        <h2>Experiments</h2>
         <ul class="status-pane-list">
             {% for uuid, exp in experiments.items() %}
                 <li class="status-pane-li">
-                    <div class="status-pane-div">
-                        <h2>Experiment {{ uuid }}</h2>
-                        <h4>Created By:</h4>
-                        <p>{{ exp.created_by }}</p>
+                    <div class="status-pane-div" style="background: #f4f4f4;">
+                        <h2><a style="text-decoration: none" href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
+                        <p>Created by <strong>{{ exp.created_by }}</strong> at
+                            <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
+                        <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
                         <h4>Status:</h4>
                         <p>{{ exp.status.name.lower() }}</p>
                         <h4>Output Log:</h4>
                         {% if exp.results %}
-                            <div>
-                                {% for result in exp.results %}
-                                    <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
-                                {% endfor %}
+                            <div class="terminal">
+                                <div class="log-content">
+                                    {% for result in exp.results %}
+                                        <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         {% else %}
-                            <p>No results available.</p>
+                            <p>No results are currently available.</p>
                         {% endif %}
                     </div>
                 </li>

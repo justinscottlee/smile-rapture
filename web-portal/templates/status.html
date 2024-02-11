@@ -1,18 +1,18 @@
 {% extends 'layout.html' %}
 {% block content %}
     <h2>Experiment Status</h2>
-    <p>Logged in as: {{ user.name_id }}</p>
+    <p>Logged in as <strong>{{ user.name_id }}</strong></p>
     {% if user.experiment_ids %}
         <ul class="status-pane-list">
-            {% for exp in exps %}
+            {% for exp in experiments %}
                 <li class="status-pane-li">
                     <div class="status-pane-div">
-                        <h2>Experiment {{ exp.experiment_uuid }}</h2>
+                        <h2><a style="text-decoration: none" href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
+                        <p>Created by <strong>{{ exp.created_by }}</strong> at
+                            <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
+                        <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
                         <h4>Status:</h4>
                         <p>{{ exp.status.name.lower() }}</p>
-                        <h4>Info:</h4>
-                        <p>Created by <strong>{{ exp.created_by }}</strong> at <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
-                        <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
                         <h4>Output Log:</h4>
                         {% if exp.results %}
                             <div class="terminal">

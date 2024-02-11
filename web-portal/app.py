@@ -43,6 +43,8 @@ def auth_required(f):
     def decorated_function(*args, **kwargs):
         # Redirect if session not logged in
         if 'loggedin' not in session:
+            # Store the original target URL where the user wanted to go
+            session['next'] = request.url
             return redirect(url_for('login'))
 
         # Find user account object
@@ -59,53 +61,49 @@ def auth_required(f):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # Check if user is already logged in
+    if 'loggedin' in session:
+        return redirect(url_for('account'))
+
     # Check if "username" and "password" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
-
-        # Create variables for easy access
         username = request.form['username']
         password = request.form['password']
 
-        # Check if account exists
+        # Attempt to find the user in the database
         acc = next((u for u in user_db if u.name_id == username), None)
 
-        # Check if password is correct
-        if acc and (acc.password != password):
-            acc = None
-
-        # If account exists and password is correct in accounts
-        if acc:
+        # If account exists and password is correct
+        if acc and acc.password == password:
             # Create session data, we can access this data in other routes
             session['loggedin'] = True
             session['name_id'] = acc.name_id
             session['email'] = acc.email
 
-            # Redirect to home page
-            return redirect(url_for('account'))
+            # Redirect to the page the user originally requested or to the account page
+            next_page = session.pop('next', url_for('account'))  # Use 'account' as the default
+            return redirect(next_page)
 
         else:
-            # Account doesnt exist or username/password incorrect
-            flash('Invalid username/password')
-            return render_template('login.html')
-
-    if 'loggedin' in session:
-        return redirect(url_for('account'))
+            # Invalid login attempt
+            flash('Error: Invalid username or password')
 
     # Show the login form with message (if any)
     return render_template('login.html')
 
 
 @app.route('/api/upload/<experiment_id>', methods=['POST'])
-def api_upload(experiment_id: str):
-    experiment = experiment_db[experiment_id]
+def api_upload(experiment_id: UUID.hex):
+    # Use get() to avoid KeyError, returning None if not found
+    exp = experiment_db.get(experiment_id)
 
-    if experiment is None:
-        return 'FAILED', 404
+    if exp is None:
+        # If the experiment_id is not found, return a 404 error
+        return jsonify({'error': 'Experiment not found'}), 404
 
-    experiment.results.append(ResultEntry(str(request.json)))
-    print(request.json)
+    exp.results.append(ResultEntry(str(request.json)))
 
-    return 'OK', 200
+    return jsonify({'message': 'OK'}), 200
 
 
 @app.route('/status')
@@ -125,6 +123,23 @@ def admin(user: User):
         return redirect(url_for('account'))
 
     return render_template('admin.html', user=user, experiments=experiment_db, users=user_db)
+
+
+@app.route('/experiment/<experiment_id>')
+# @auth_required
+def show_experiment(experiment_id: str):
+    # TODO Verify user owns the experiment or is admin
+    # if not user.admin:
+    #     flash('Error: Account does not have admin permissions')
+    #     return redirect(url_for('account'))
+
+    exp = experiment_db.get(experiment_id)
+
+    if exp is None:
+        flash('Error: Experiment not found')
+        return redirect(url_for('index'))
+
+    return render_template('experiment.html', experiment=exp)
 
 
 @app.route('/logout')
