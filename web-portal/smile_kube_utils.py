@@ -3,6 +3,7 @@ import shutil
 from models import *
 import yaml
 import kubernetes
+import subprocess
 
 REGISTRY_ADDRESS = "130.191.161.13:5000"
 
@@ -128,10 +129,11 @@ def deploy_experiment(experiment: Experiment):
 
     __create_yaml(experiment.created_by, containers)
     os.system("sudo k3s kubectl create -f generated.yaml")
+    experiment.status = ExperimentStatus.RUNNING
 
 
 def update_experiment_status(experiment: Experiment):
-    if experiment.status == ExperimentStatus.COMPLETED or experiment.status == ExperimentStatus.STOPPED:
+    if experiment.status == ExperimentStatus.COMPLETED or experiment.status == ExperimentStatus.STOPPED or experiment.status == ExperimentStatus.NOT_READY:
         return
     kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
     batch_v1 = kubernetes.client.BatchV1Api()
@@ -159,8 +161,10 @@ def update_experiment_status(experiment: Experiment):
             any_jobs_failed = True
     if all_jobs_succeeded:
         experiment.status = ExperimentStatus.COMPLETED
+        subprocess.Popen(f"sudo k3s kubectl delete namespace {experiment.created_by}", shell=True)
     if any_jobs_failed:
         experiment.status = ExperimentStatus.STOPPED
+        subprocess.Popen(f"sudo k3s kubectl delete namespace {experiment.created_by}", shell=True)
 
 
 # below is only for debugging/development
