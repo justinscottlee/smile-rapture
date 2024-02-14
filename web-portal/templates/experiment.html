@@ -47,8 +47,8 @@
                              style="background: #f4f4f4; margin-bottom: 20px; min-width: 300px; width: fit-content">
                             <h3 style="margin: 0">Container {{ container_index.index }}</h3>
                             <p>Name: <strong>{{ container.name }}</strong></p>
-                            <p>Status: <strong>{{ container.status }}</strong></p>
-                            <p>Registry Tag: <strong>{{ container.registry_tag }}</strong></p>
+                            <p>Hostname: <strong>{{ container.name }}-svc.{{ experiment.created_by }}</strong></p>
+                            <p>Status: <strong>{{ container.status.name }}</strong></p>
                             <p>Ports:<strong>{% for port in container.ports %}
                                 {{ port|string }}{% if not loop.last %},{% endif %}{% endfor %}</strong></p>
                         </div>
