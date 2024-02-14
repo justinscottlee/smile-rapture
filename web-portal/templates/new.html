@@ -127,6 +127,9 @@
         <h2>Submit Experiment</h2>
         <p>Logged in as <strong>{{ user.name_id }}</strong></p>
 
+        <label for="experiment-name">Experiment Name:</label>
+        <input title="Please input a valid experiment name." type="text" id="experiment-name" name="experiment-name" placeholder="Enter custom experiment name" required>
+
         <input type="hidden" id="nodeCountField" name="nodeCount" value="0">
 
         <!-- Placeholder for container count fields -->
@@ -139,7 +142,6 @@
             <!-- Button to add new node -->
             <button type="button" id="addNodeButton" onclick="addNode()">Add Node</button>
         </div>
-
         <hr style="margin-top: 20px;margin-bottom: 20px;">
         <div id="submitSection">
             <input type="submit" value="Upload"><br>
