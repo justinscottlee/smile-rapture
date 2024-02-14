@@ -8,7 +8,7 @@
                 <li class="status-pane-li">
                     <div class="status-pane-div" id="experiment-{{ experiment.experiment_uuid }}">
                         <h2><a style="text-decoration: none"
-                               href="/experiment/{{ experiment.experiment_uuid }}">{{ experiment.experiment_uuid }}</a></h2>
+                               href="/experiment/{{ experiment.experiment_uuid }}">{{ experiment.name }}</a></h2>
                         <p>Created by <strong>{{ experiment.created_by }}</strong> at
                             <strong>{{ ts_formatted(experiment.created_at) }}</strong></p>
                         <div id="status-{{ experiment.experiment_uuid }}"
