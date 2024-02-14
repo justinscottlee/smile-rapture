@@ -36,6 +36,8 @@ if not experiment_collection.find_one({"name_id": "admin"}):
     user_collection.insert_one(User(name_id='admin', email='none@none.net',
                                     password=hashed_password).json())
 
+    del hashed_password
+
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -43,7 +45,7 @@ app.config['REGISTRY_URI'] = '130.191.161.13:5000'
 
 config_db: dict = {
     "valid_images": ["python:latest", "python:3.10-bullseye", "python:3.12-bookworm", "python:3.11-bookworm"],
-    "node_types": ["drone-arm64", "node-arm64", "node-amd64"]}
+    "node_types": [node_type.name for node_type in NodeType]}
 
 
 # TODO this may be redundant, email is not unique
@@ -370,7 +372,11 @@ def upload_file(user: User):
             flash(f'Error: Container count wrongly specified in node{node_id}')
             return redirect(url_for('new'))
 
-        curr_node = Node(NodeType(node_type))
+        try:
+            curr_node = Node(NodeType(node_type))
+        except ValueError:
+            flash(f'Error: Node type wrongly specified in node{node_id}')
+            return redirect(url_for('new'))
 
         for container_id in range(1, container_count + 1):
             name = str(request.form.getlist(f'container-name-{node_id}')[container_id - 1]).strip()

@@ -28,9 +28,9 @@ class ContainerStatus(Enum):
 
 
 class NodeType(Enum):
-    DRONE_ARM64 = 0
+    NODE_AMD64 = 0
     NODE_ARM64 = 1
-    NODE_AMD64 = 2
+    DRONE_ARM64 = 2
 
 
 @dataclass
