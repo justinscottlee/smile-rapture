@@ -8,5 +8,6 @@ htmlcov/
 docs/_build/
 dist/
 venv/
+test-apps/hello-world/src.zip
 .DS_STORE
 web-portal/uploads

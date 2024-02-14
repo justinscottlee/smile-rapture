@@ -23,8 +23,19 @@ config_collection = db["config"]
 user_collection = db["users"]
 experiment_collection = db["experiments"]
 
-# del all users, for testing!
+# To delete all data: for testing!
 # user_collection.delete_many({})
+# experiment_collection.delete_many({})
+
+# create admin user if admin does not exist
+if not experiment_collection.find_one({"name_id": "admin"}):
+    # Hash the password with bcrypt
+    hashed_password = str(bcrypt.generate_password_hash(str('admin')).decode('utf-8'))
+
+    # Create user object and push to DB
+    user_collection.insert_one(User(name_id='admin', email='none@none.net',
+                                    password=hashed_password).json())
+
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
@@ -371,7 +382,9 @@ def upload_file(user: User):
 
             if container_image is None or ports_open is None or source_zip_file is None or req_file is None:
                 flash(
-                    f'Error: Form upload failed. Types - container_image: {type(container_image)}, ports_open: {type(ports_open)}, source_zip_file: {type(source_zip_file)}, req_file: {type(req_file)}')
+                    f'Error: Form upload failed. Types - container_image: {type(container_image)},'
+                    f' ports_open: {type(ports_open)}, source_zip_file: {type(source_zip_file)},'
+                    f' req_file: {type(req_file)}')
                 return redirect(url_for('new'))
 
             reg_tag = str(uuid4())
@@ -404,7 +417,7 @@ def upload_file(user: User):
 
             curr_node.containers.append(cont)
 
-        experiment.nodes.append(curr_node)  # TODO verify this isnt broken
+        experiment.nodes.append(curr_node)  # TODO verify this isn't broken
 
     # Upload experiment
     experiment_collection.insert_one(experiment.json())
