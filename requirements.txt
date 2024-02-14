@@ -1,0 +1,8 @@
+flask
+flask_htmx
+flask_bcrypt
+pymongo
+PyYAML
+kubernetes==28.1.0
+pyzmq
+requests
