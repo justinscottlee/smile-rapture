@@ -8,7 +8,7 @@ import time
 
 def uuid4_hex() -> UUID.hex:
     # Return the hexadecimal representation of UUID
-    return uuid4().hex
+    return str(uuid4().hex)
 
 
 class ExperimentStatus(Enum):
@@ -128,7 +128,10 @@ class Experiment:
     def json(self):
         experiment_dict = asdict(self)
 
-        experiment_dict['_id'] = self.experiment_uuid  # Use experiment_uuid as the document _id
+        # Use experiment_uuid as the document _id
+        experiment_dict['_id'] = str(self.experiment_uuid)
+        del experiment_dict['experiment_uuid']
+
         experiment_dict['status'] = self.status.value  # Convert Enum to its value
 
         # Convert nodes and results as before

@@ -27,16 +27,19 @@ experiment_collection = db["experiments"]
 # user_collection.delete_many({})
 # experiment_collection.delete_many({})
 
+for e in experiment_collection.find({}):
+    print(e)
+
 # create admin user if admin does not exist
-if not experiment_collection.find_one({"name_id": "admin"}):
+if not user_collection.find_one({"name_id": "admin"}):
     # Hash the password with bcrypt
-    hashed_password = str(bcrypt.generate_password_hash(str('admin')).decode('utf-8'))
+    a_pass = str(bcrypt.generate_password_hash(str('admin')).decode('utf-8'))
 
     # Create user object and push to DB
     user_collection.insert_one(User(name_id='admin', email='none@none.net',
-                                    password=hashed_password).json())
+                                    password=a_pass).json())
 
-    del hashed_password
+    del a_pass
 
 
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
@@ -66,7 +69,8 @@ def get_user_by_id(name_id: str) -> User or None:
 
 
 def get_experiment_by_id(experiment_id: UUID.hex) -> Experiment or None:
-    exp_data = user_collection.find_one({"_id": experiment_id})
+    # TODO try this
+    exp_data = experiment_collection.find_one({"_id": experiment_id})
 
     if exp_data:
         # Convert the MongoDB document to the User dataclass instance
@@ -249,7 +253,7 @@ def get_experiment_status(user: User, experiment_id: UUID.hex):
         # If the experiment_id is not found, return a 404 error
         return jsonify({'error': f"Experiment '{experiment_id}' not found"}), 404
 
-    if experiment.created_by != user.name_id or not user.admin:
+    if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
     smile_kube_utils.update_experiment_status(experiment)
@@ -270,7 +274,7 @@ def get_experiment_results(user: User, experiment_id: UUID.hex):
         # If the experiment_id is not found, return a 404 error
         return jsonify({'error': f"Experiment '{experiment_id}' not found"}), 404
 
-    if experiment.created_by != user.name_id or not user.admin:
+    if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
     smile_kube_utils.update_experiment_status(experiment)
@@ -301,7 +305,7 @@ def show_experiment(user: User, experiment_id: str):
         flash(f"Error: Experiment '{experiment_id}' not found")
         return redirect(url_for('index'))
 
-    if experiment.created_by != user.name_id or not user.admin:
+    if experiment.created_by != user.name_id and not user.admin:
         flash(f"Error: Invalid permissions for experiment '{experiment_id}'")
         return redirect(url_for('index'))
 
@@ -354,8 +358,7 @@ def upload_file(user: User):
         flash('Error: No experiment name specified')
         return redirect(url_for('new'))
 
-    experiment = Experiment(experiment_uuid=str(uuid4()), created_by=user.name_id, created_at=time.time(),
-                            name=experiment_name)
+    experiment = Experiment(created_by=user.name_id, created_at=time.time(), name=experiment_name)
     experiment_base_path = str(os.path.join(app.config['UPLOAD_FOLDER'], experiment.experiment_uuid + "/"))
 
     if not os.path.exists(experiment_base_path):
@@ -373,8 +376,10 @@ def upload_file(user: User):
             return redirect(url_for('new'))
 
         try:
-            curr_node = Node(NodeType(node_type))
-        except ValueError:
+            curr_node = Node(NodeType[node_type])
+            print(curr_node)
+        except ValueError as e:
+            print(e)
             flash(f'Error: Node type wrongly specified in node{node_id}')
             return redirect(url_for('new'))
 
@@ -393,7 +398,7 @@ def upload_file(user: User):
                     f' req_file: {type(req_file)}')
                 return redirect(url_for('new'))
 
-            reg_tag = str(uuid4())
+            reg_tag = str(uuid4().hex)
             container_base_path = os.path.join(experiment_base_path, reg_tag + "/")
             src_path = os.path.join(container_base_path, "src/")
             src_zip_path = os.path.join(src_path, "src.zip")
