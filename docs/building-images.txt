@@ -34,5 +34,7 @@ COPY src/ .
 CMD [ "python", "./main.py" ]
 `
 
-`docker buildx create --use`
-`docker buildx build --push --platform linux/arm64,linux/amd64 --tag 130.191.161.13:5001/registry/hellopython . --output=type=registry,registry.insecure=true`
+# IMPORTANT: sudo/user buildx metadata is different use 1 or the other
+`sudo docker buildx create --name mybuilder --driver docker-container --use`
+`sudo docker buildx inspect --bootstrap`
+`sudo docker buildx build --push --builder mybuilder --platform linux/arm64,linux/amd64 --tag 130.191.161.13:5001/registry/hellopython . --output=type=registry,registry.insecure=true`

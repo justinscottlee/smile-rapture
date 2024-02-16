@@ -35,8 +35,7 @@ def __generate_image(user_name: str, container: Container):
     shutil.copy(container.python_requirements, "requirements.txt")
 
     # build and push container image
-    print("build commencing:", f"\ndocker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
-    os.system(f"docker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
+    os.system(f"docker buildx build --push --builder mybuilder --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
 
 
 def __create_yaml(user_name: str, containers: list):
@@ -123,7 +122,10 @@ def deploy_experiment(experiment: Experiment):
         lines[0] = f"EXPERIMENT_UUID = \"{experiment.experiment_uuid}\"\n"
         f.writelines(lines)
 
-    smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt", registry_tag="smile-app", ports=[5555], status=ContainerStatus.PENDING, name="smile-app")
+    smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt",
+                                registry_tag="smile-app", ports=[5555],
+                                status=ContainerStatus.PENDING, name="smile-app")
+
     print("creating smile container image...", end=" ")
     __generate_image(experiment.created_by, smile_container)
     print("done")
