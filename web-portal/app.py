@@ -430,15 +430,16 @@ def upload_file(user: User):
 
         experiment.nodes.append(curr_node)  # TODO verify this isn't broken
 
-    # Upload experiment
+
+    # deploy exp
+    smile_kube_utils.deploy_experiment(experiment)
+
+    # Add experiment
     experiment_collection.insert_one(experiment.json())
 
     # Associate experiment with user
     user_collection.update_one({'name_id': user.name_id},
                                {'$push': {"experiment_ids": experiment.experiment_uuid}})
-
-    # deploy exp
-    smile_kube_utils.deploy_experiment(experiment)
 
     flash(f'Success: Experiment uploaded successfully')
     return redirect(url_for('show_experiment', experiment_id=experiment.experiment_uuid))
