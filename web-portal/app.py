@@ -24,8 +24,8 @@ user_collection = db["users"]
 experiment_collection = db["experiments"]
 
 # To delete all data: for testing!
-user_collection.delete_many({})
-experiment_collection.delete_many({})
+# user_collection.delete_many({})
+# experiment_collection.delete_many({})
 
 for e in experiment_collection.find({}):
     print(e)
