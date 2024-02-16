@@ -108,26 +108,37 @@ def __create_yaml(user_name: str, containers: list):
 
 def deploy_experiment(experiment: Experiment):
     os.system(f"sudo k3s kubectl delete namespace {experiment.created_by}")
+    print("creating dockerfile...", end=" ")
     __create_dockerfile()
+    print("done")
 
     containers = []
 
-    lines = []
+    # lines = []
     with open("../helper-app/src/main.py", "r") as f:
         lines = f.readlines()
+
     with open("../helper-app/src/main.py", "w") as f:
         lines[0] = f"EXPERIMENT_UUID = \"{experiment.experiment_uuid}\"\n"
         f.writelines(lines)
+
     smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt", registry_tag="smile-app", ports=[5555], status=ContainerStatus.PENDING, name="smile-app")
+    print("creating smile container image...", end=" ")
     __generate_image(experiment.created_by, smile_container)
+    print("done")
+
     containers.append(smile_container)
 
     for node in experiment.nodes:
         for container in node.containers:
+            print("creating node container image...", end=" ")
             __generate_image(experiment.created_by, container)
+            print("done")
             containers.append(container)
 
+    print("creating k3s deployment file...", end=" ")
     __create_yaml(experiment.created_by, containers)
+    print("done")
     os.system("sudo k3s kubectl create -f generated.yaml")
     experiment.status = ExperimentStatus.RUNNING
 
