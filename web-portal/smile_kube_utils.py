@@ -35,6 +35,7 @@ def __generate_image(user_name: str, container: Container):
     shutil.copy(container.python_requirements, "requirements.txt")
 
     # build and push container image
+    print("build commencing:", f"\ndocker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
     os.system(f"docker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{user_name}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
 
 
@@ -139,7 +140,9 @@ def deploy_experiment(experiment: Experiment):
     print("creating k3s deployment file...", end=" ")
     __create_yaml(experiment.created_by, containers)
     print("done")
+    print("deploying...", end=" ")
     os.system("sudo k3s kubectl create -f generated.yaml")
+    print("done")
     experiment.status = ExperimentStatus.RUNNING
 
 
