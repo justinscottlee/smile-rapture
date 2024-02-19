@@ -255,7 +255,7 @@ def stdout_upload(experiment_id: UUID.hex, reg_tag: UUID.hex):
     # Define the update to append the log message to the stdout_log
     update = {
         "$push": {
-            "nodes.$[].containers.$[container].stdout_log": request.json['stdout'].decode('utf-8')
+            "nodes.$[].containers.$[container].stdout_log": str(request.json['stdout'])
         }
     }
     # Execute the update operation
