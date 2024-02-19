@@ -13,6 +13,8 @@ def __create_dockerfile():
     f.write("FROM python:3.11.5\n")
     f.write("WORKDIR /code\n")
     f.write("COPY requirements.txt .\n")
+    f.write("RUN apt update\n")
+    f.write("RUN apt install -y jq\n")
     f.write("RUN pip install -r requirements.txt\n")
     f.write("COPY src/ .\n")
     f.write("CMD [ \"./start.sh\" ]")
