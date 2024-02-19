@@ -44,10 +44,10 @@ def __generate_image(experiment: Experiment, container: Container):
         f.writelines(lines)
 
     # build and push container image
-    os.system(f"docker buildx build --push --builder mybuilder --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{experiment.created_by}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
+    os.system(f"docker buildx build --push --platform linux/arm64,linux/amd64 --tag {REGISTRY_ADDRESS}/{experiment.created_by}/{container.registry_tag} . --output=type=registry,registry.insecure=true")
 
 
-def __create_yaml(experiment: Experiment):
+def __create_yaml(experiment: Experiment, containers: list[Container]):
     documents = [{
         "apiVersion": "v1",
         "kind": "Namespace",
@@ -57,59 +57,58 @@ def __create_yaml(experiment: Experiment):
     }]
     
     # Loop through each container to create Jobs
-    for node in experiment.nodes:
-        for container in node.containers:
-            job_document = {
-                "apiVersion": "batch/v1",
-                "kind": "Job",
+    for container in containers:
+        job_document = {
+            "apiVersion": "batch/v1",
+            "kind": "Job",
+            "metadata": {
+                "name": container.name,
+                "namespace": experiment.created_by,
+                "labels": {
+                    "k8s-app": container.name
+                },
+            },
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "k8s-app": container.name
+                        }
+                    },
+                    "spec": {
+                        "containers": [{
+                            "name": container.name,
+                            "image": f"{REGISTRY_ADDRESS}/{experiment.created_by}/{container.registry_tag}",
+                            "imagePullPolicy": "Always"
+                        }],
+                        "restartPolicy": "Never"
+                    }
+                },
+                "backoffLimit": 0
+            }
+        }
+        documents.append(job_document)
+        
+        # Service document if container has ports
+        if len(container.ports) > 0:
+            service_document = {
+                "apiVersion": "v1",
+                "kind": "Service",
                 "metadata": {
-                    "name": container.name,
+                    "name": f"{container.name}-svc",
                     "namespace": experiment.created_by,
                     "labels": {
-                        "k8s-app": container.name
+                        "k8s-app": f"{container.name}-svc"
                     },
                 },
                 "spec": {
-                    "template": {
-                        "metadata": {
-                            "labels": {
-                                "k8s-app": container.name
-                            }
-                        },
-                        "spec": {
-                            "containers": [{
-                                "name": container.name,
-                                "image": f"{REGISTRY_ADDRESS}/{experiment.created_by}/{container.registry_tag}",
-                                "imagePullPolicy": "Always"
-                            }],
-                            "restartPolicy": "Never"
-                        }
+                    "selector": {
+                        "k8s-app": container.name
                     },
-                    "backoffLimit": 0
+                    "ports": [{"port": port} for port in container.ports]
                 }
             }
-            documents.append(job_document)
-            
-            # Service document if container has ports
-            if len(container.ports) > 0:
-                service_document = {
-                    "apiVersion": "v1",
-                    "kind": "Service",
-                    "metadata": {
-                        "name": f"{container.name}-svc",
-                        "namespace": experiment.created_by,
-                        "labels": {
-                            "k8s-app": f"{container.name}-svc"
-                        },
-                    },
-                    "spec": {
-                        "selector": {
-                            "k8s-app": container.name
-                        },
-                        "ports": [{"port": port} for port in container.ports]
-                    }
-                }
-                documents.append(service_document)
+            documents.append(service_document)
         
     # Write to YAML file
     with open("generated.yaml", "w") as file:
@@ -151,7 +150,7 @@ def deploy_experiment(experiment: Experiment):
             containers.append(container)
 
     print("creating k3s deployment file...", end=" ")
-    __create_yaml(experiment)
+    __create_yaml(experiment, containers)
     print("done")
     print("deploying...", end=" ")
     os.system("sudo k3s kubectl create -f generated.yaml")
