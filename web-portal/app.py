@@ -51,6 +51,20 @@ config_db: dict = {
     "node_types": [node_type.name for node_type in NodeType]}
 
 
+def update_experiment_and_db(experiment: Experiment):
+    smile_kube_utils.update_experiment_status(experiment)
+    exp_data = experiment.json()
+
+    # Remove the '_id' field from the dictionary if it exists, as we don't want to modify the MongoDB document ID
+    exp_data.pop('_id', None)
+
+    # Update the document in MongoDB
+    experiment_collection.update_one(
+        {'_id': experiment.experiment_uuid},  # Query part: find the document by its ID
+        {'$set': exp_data}  # Update part: set the document fields to the values in experiment_data
+    )
+
+
 # TODO this may be redundant, email is not unique
 def get_user_by_email(email: str) -> User or None:
     user_data = user_collection.find_one({"email": email})
@@ -241,7 +255,7 @@ def stdout_upload(experiment_id: UUID.hex, reg_tag: UUID.hex):
     # Define the update to append the log message to the stdout_log
     update = {
         "$push": {
-            "nodes.$[].containers.$[container].stdout_log": request.data.decode('utf-8')
+            "nodes.$[].containers.$[container].stdout_log": request.json['stdout'].decode('utf-8')
         }
     }
     # Execute the update operation
@@ -260,9 +274,7 @@ def status(user: User):
     experiments = get_experiments(user.experiment_ids)
 
     for experiment in experiments:
-        smile_kube_utils.update_experiment_status(experiment)
-        experiment_collection.update_one({'_id': experiment.experiment_uuid},
-                                         {'$set': {"status": experiment.status.value}})
+        update_experiment_and_db(experiment)
 
     return render_template('status.html', user=user, experiments=experiments)
 
@@ -280,8 +292,7 @@ def get_experiment_status(user: User, experiment_id: UUID.hex):
     if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
-    smile_kube_utils.update_experiment_status(experiment)
-    experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
+    update_experiment_and_db(experiment)
 
     # Render only the status part of the experiment
     fragment = render_template('partial/experiment_status_fragment.html', experiment=experiment)
@@ -301,8 +312,7 @@ def get_experiment_results(user: User, experiment_id: UUID.hex):
     if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
-    smile_kube_utils.update_experiment_status(experiment)
-    experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
+    update_experiment_and_db(experiment)
 
     # Render only the results part of the experiment
     fragment = render_template('partial/experiment_results_fragment.html', experiment=experiment)
@@ -331,8 +341,16 @@ def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex)
     if container is None:
         return jsonify({'error': f"Container '{reg_tag}' not found"}), 404
 
-    smile_kube_utils.update_experiment_status(experiment)
-    experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
+    update_experiment_and_db(experiment)
+
+    container = None
+    for n in experiment.nodes:
+        for c in n.containers:
+            if reg_tag == c.registry_tag:
+                container = c
+
+    if container is None:
+        return jsonify({'error': f"Container '{reg_tag}' not found"}), 404
 
     # Render only the results part of the experiment
     fragment = render_template('partial/container_stdout_fragment.html', container=container)
@@ -363,8 +381,7 @@ def show_experiment(user: User, experiment_id: str):
         flash(f"Error: Invalid permissions for experiment '{experiment_id}'")
         return redirect(url_for('index'))
 
-    smile_kube_utils.update_experiment_status(experiment)
-    experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
+    update_experiment_and_db(experiment)
 
     return render_template('experiment.html', experiment=experiment)
 
