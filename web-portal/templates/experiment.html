@@ -54,9 +54,10 @@
 
                             <h4>stdout log:</h4>
                             <div id="stdout-{{ container.registry_tag }}" class="terminal"
-                                 hx-get="/experiment/{{ experiment.experiment_uuid }}/{{ container.registry_tag }}/stdout/" hx-trigger="every 1s"
+                                 hx-get="/experiment/{{ experiment.experiment_uuid }}/{{ container.registry_tag }}/stdout/"
+                                 hx-trigger="every 1s"
                                  hx-target="this">
-                                {% if container.results %}
+                                {% if container.stdout_log %}
                                     <div class="terminal">
                                         <div class="log-content">
                                             {% for new_out in container.stdout_log %}

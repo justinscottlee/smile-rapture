@@ -323,9 +323,10 @@ def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex)
 
     container = None
 
-    for c in experiment.containers:
-        if reg_tag == c.registry_tag:
-            container = c
+    for n in experiment.nodes:
+        for c in n.containers:
+            if reg_tag == c.registry_tag:
+                container = c
 
     if container is None:
         return jsonify({'error': f"Container '{reg_tag}' not found"}), 404
@@ -334,7 +335,7 @@ def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex)
     experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
 
     # Render only the results part of the experiment
-    fragment = render_template('partial/container_stdout_fragment.html', experiment=experiment)
+    fragment = render_template('partial/container_stdout_fragment.html', container=container)
     return make_response(fragment, push_url=False)
 
 
