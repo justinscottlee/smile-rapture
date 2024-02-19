@@ -11,6 +11,6 @@ send_stdout() {
 }
 
 # Run the Python script and process its stdout
-python -u main.py | while IFS= read -r line; do
+python -u main.py 2>&1 | while IFS= read -r line; do
   send_stdout "$line"
 done
