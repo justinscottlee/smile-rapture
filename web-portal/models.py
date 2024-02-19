@@ -5,6 +5,8 @@ from uuid import UUID, uuid4
 from collections.abc import Mapping
 import time
 
+from app import user_collection, experiment_collection, config_db
+
 
 def uuid4_hex() -> UUID.hex:
     # Return the hexadecimal representation of UUID
@@ -55,14 +57,29 @@ class User:
     admin: bool = False
     created_at: float = field(default_factory=time.time)
 
+    def json(self):
+        return asdict(self)
+
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'User':
         return cls(name_id=str(doc['name_id']), email=str(doc['email']), password=str(doc['password']),
                    experiment_ids=[str(exp_id) for exp_id in doc['experiment_ids']], admin=bool(doc['admin']),
                    created_at=float(doc['created_at']))
 
-    def json(self):
-        return asdict(self)
+    @classmethod
+    def get_by_id(cls, name_id: str) -> 'User' or None:
+        user_data = user_collection.find_one({"name_id": name_id})
+
+        if user_data:
+            # Convert the MongoDB document to the User dataclass instance
+            return cls.from_json(user_data)
+
+        return None
+
+    @classmethod
+    def get_all(cls):
+        return [cls.from_json(doc) for doc in user_collection.find({})]
+
 
 
 @dataclass
@@ -140,3 +157,29 @@ class Experiment:
         experiment_dict['nodes'] = [node.json() for node in self.nodes]
         experiment_dict['results'] = [result.json() for result in self.results]
         return experiment_dict
+
+    @classmethod
+    def get_by_id(cls, experiment_uuid: UUID.hex) -> 'Experiment' or None:
+        exp_data = experiment_collection.find_one({"_id": experiment_uuid})
+
+        if exp_data:
+            # Convert the MongoDB document to the User dataclass instance
+            return cls.from_json(exp_data)
+
+        return None
+
+    @classmethod
+    def get_mul_by_id(cls, exp_ids: list[UUID.hex]) -> list['Experiment' or None]:
+        return [cls.from_json(doc) for doc in experiment_collection.find({"_id": {"$in": exp_ids}})]
+
+    @classmethod
+    def get_all(cls):
+        return [cls.from_json(doc) for doc in experiment_collection.find({})]
+
+
+
+
+
+
+
+

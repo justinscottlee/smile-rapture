@@ -41,7 +41,6 @@ if not user_collection.find_one({"name_id": "admin"}):
 
     del a_pass
 
-
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), "uploads/")
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 app.config['REGISTRY_URI'] = '130.191.161.13:5000'
@@ -65,67 +64,6 @@ def update_experiment_and_db(experiment: Experiment):
     )
 
 
-# TODO this may be redundant, email is not unique
-def get_user_by_email(email: str) -> User or None:
-    user_data = user_collection.find_one({"email": email})
-    if user_data:
-        # Convert the MongoDB document to the User dataclass instance
-        return User.from_json(user_data)
-    return None
-
-
-def get_user_by_id(name_id: str) -> User or None:
-    user_data = user_collection.find_one({"name_id": name_id})
-    if user_data:
-        # Convert the MongoDB document to the User dataclass instance
-        return User.from_json(user_data)
-    return None
-
-
-def get_experiment_by_id(experiment_id: UUID.hex) -> Experiment or None:
-    # TODO try this
-    exp_data = experiment_collection.find_one({"_id": experiment_id})
-
-    if exp_data:
-        # Convert the MongoDB document to the User dataclass instance
-        return Experiment.from_json(exp_data)
-
-    return None
-
-
-def get_experiments(exp_ids: list[UUID.hex]) -> list[Experiment]:
-    exp_list = []
-
-    # Fetch experiments from MongoDB
-    cursor = experiment_collection.find({"_id": {"$in": exp_ids}})
-
-    # Convert each document into an Experiment instance
-    for doc in cursor:
-        exp_list.append(Experiment.from_json(doc))
-
-    return exp_list
-
-
-def get_all_users() -> list[User]:
-    user_list = []
-
-    cursor = user_collection.find({})
-    for doc in cursor:
-        user_list.append(User.from_json(doc))
-
-    return user_list
-
-
-def get_all_experiments() -> list[Experiment]:
-    exp_list = []
-
-    cursor = experiment_collection.find({})
-    for doc in cursor:
-        exp_list.append(Experiment.from_json(doc))
-
-    return exp_list
-
-
 @app.context_processor
 def utility_processor():
     def ts_formatted(ts):
@@ -144,7 +82,7 @@ def auth_required(f):
             return redirect(url_for('login'))
 
         # Find user account object
-        user = get_user_by_id(session['name_id'])
+        user = User.get_by_id(session['name_id'])
 
         # If account object is not found, show error page.
         if not user:
@@ -169,7 +107,7 @@ def login():
     # Check if "username" and "password" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         # Attempt to find the user in the database
-        user = get_user_by_id(str(request.form['username']))
+        user = User.get_by_id(str(request.form['username']))
 
         # If account exists and password is correct
         if user and bcrypt.check_password_hash(user.password, str(request.form["password"])):
@@ -203,7 +141,7 @@ def create_account():
         email = str(request.form['email'])
 
         # Check if username exists
-        if not get_user_by_id(name_id):
+        if not User.get_by_id(name_id):
             # Hash the password with bcrypt
             hashed_password = str(bcrypt.generate_password_hash(str(request.form['password'])).decode('utf-8'))
 
@@ -231,7 +169,7 @@ def create_account():
 @app.route('/api/upload/<experiment_id>', methods=['POST'])
 def api_upload(experiment_id: UUID.hex):
     # TODO add auth so randoms cant upload results
-    experiment = get_experiment_by_id(experiment_id)
+    experiment = Experiment.get_by_id(experiment_id)
 
     if experiment is None:
         # If the experiment_id is not found, return a 404 error
@@ -271,7 +209,7 @@ def stdout_upload(experiment_id: UUID.hex, reg_tag: UUID.hex):
 @app.route('/status')
 @auth_required
 def status(user: User):
-    experiments = get_experiments(user.experiment_ids)
+    experiments = Experiment.get_mul_by_id(user.experiment_ids)
 
     for experiment in experiments:
         update_experiment_and_db(experiment)
@@ -283,7 +221,7 @@ def status(user: User):
 @app.route('/experiment/<experiment_id>/status/')
 @auth_required
 def get_experiment_status(user: User, experiment_id: UUID.hex):
-    experiment = get_experiment_by_id(experiment_id)
+    experiment = Experiment.get_by_id(experiment_id)
 
     if experiment is None:
         # If the experiment_id is not found, return a 404 error
@@ -303,7 +241,7 @@ def get_experiment_status(user: User, experiment_id: UUID.hex):
 @app.route('/experiment/<experiment_id>/results/')
 @auth_required
 def get_experiment_results(user: User, experiment_id: UUID.hex):
-    experiment = get_experiment_by_id(experiment_id)
+    experiment = Experiment.get_by_id(experiment_id)
 
     if experiment is None:
         # If the experiment_id is not found, return a 404 error
@@ -322,7 +260,7 @@ def get_experiment_results(user: User, experiment_id: UUID.hex):
 @app.route('/experiment/<experiment_id>/<reg_tag>/stdout/')
 @auth_required
 def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex):
-    experiment = get_experiment_by_id(experiment_id)
+    experiment = Experiment.get_by_id(experiment_id)
 
     if experiment is None:
         # If the experiment_id is not found, return a 404 error
@@ -365,13 +303,13 @@ def admin(user: User):
         return redirect(url_for('index'))
 
     return render_template('admin.html', user=user,
-                           experiments=get_all_experiments(), users=get_all_users())
+                           experiments=Experiment.get_all(), users=User.get_all())
 
 
 @app.route('/experiment/<experiment_id>')
 @auth_required
 def show_experiment(user: User, experiment_id: str):
-    experiment = get_experiment_by_id(experiment_id)
+    experiment = Experiment.get_by_id(experiment_id)
 
     if experiment is None:
         flash(f"Error: Experiment '{experiment_id}' not found")
@@ -412,7 +350,8 @@ def index():
 @app.route('/account', methods=['GET'])
 @auth_required
 def account(user: User):
-    return render_template("account.html", user=user, exps=get_experiments(user.experiment_ids))
+    return render_template("account.html", user=user,
+                           exps=Experiment.get_mul_by_id(user.experiment_ids))
 
 
 @app.route('/upload_file', methods=['POST'])
@@ -500,7 +439,6 @@ def upload_file(user: User):
             curr_node.containers.append(cont)
 
         experiment.nodes.append(curr_node)  # TODO verify this isn't broken
-
 
     # deploy exp
     smile_kube_utils.deploy_experiment(experiment)

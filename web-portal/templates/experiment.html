@@ -3,9 +3,10 @@
     <ul class="status-pane-list">
         <li class="status-pane-li">
             <div class="status-pane-div">
-                <h2>{{ experiment.experiment_uuid }}</h2>
+                <h2>{{ experiment.name }}</h2>
                 <p>Created by <strong>{{ experiment.created_by }}</strong> at
                     <strong>{{ ts_formatted(experiment.created_at) }}</strong></p>
+                <p>UUID: <strong>{{ experiment.experiment_uuid }}</strong></p>
 
                 <div id="status-{{ experiment.experiment_uuid }}"
                      hx-get="/experiment/{{ experiment.experiment_uuid }}/status/"
@@ -44,7 +45,7 @@
                     {% for container in node.containers %}
                         {% set container_index = loop %}
                         <div class="status-pane-div"
-                             style="background: #f4f4f4; margin-bottom: 20px; min-width: 300px; width: fit-content">
+                             style="background: #f4f4f4; margin-bottom: 20px; min-width: 300px; width: auto">
                             <h3 style="margin: 0">Container {{ container_index.index }}</h3>
                             <p>Name: <strong>{{ container.name }}</strong></p>
                             <p>Hostname: <strong>{{ container.name }}-svc.{{ experiment.created_by }}</strong></p>
