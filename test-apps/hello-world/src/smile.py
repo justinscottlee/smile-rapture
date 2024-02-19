@@ -2,10 +2,11 @@ import zmq
 import time
 
 experiment_start_time = time.time()
+debug = True
 
-def init(user_name: str, debug_mode: bool = False):
+def __init(user_name: str):
     global context, socket, debug
-    debug = debug_mode
+    debug = False
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     socket.connect(f"tcp://smile-app-svc.{user_name}:5555")
