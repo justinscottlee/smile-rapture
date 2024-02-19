@@ -73,12 +73,14 @@ class Container:
     ports: list[int]  # list of ports to open within kubernetes network for inter-container communication
     status: ContainerStatus
     name: str  # user-defined container name
+    stdout_log: list[str] = field(default_factory=list)  # stdout pipe
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Container':
         return cls(src_dir=str(doc['src_dir']), python_requirements=str(doc['python_requirements']),
                    registry_tag=str(doc['registry_tag']), ports=[int(port) for port in doc['ports']],
-                   status=ContainerStatus(int(doc['status'])), name=str(doc['name']))
+                   status=ContainerStatus(int(doc['status'])), name=str(doc['name']),
+                   stdout_log=[str(entry) for entry in doc['stdout_log']])
 
     def json(self):
         container_dict = asdict(self)

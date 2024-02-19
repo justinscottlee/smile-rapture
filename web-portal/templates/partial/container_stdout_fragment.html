@@ -1,0 +1,15 @@
+<div id="stdout-{{ container.registry_tag }}" class="terminal"
+     hx-get="/experiment/{{ experiment.experiment_uuid }}/{{ container.registry_tag }}/stdout/" hx-trigger="every 1s"
+     hx-target="this">
+    {% if container.results %}
+        <div class="terminal">
+            <div class="log-content">
+                {% for new_out in container.stdout_log %}
+                    <div>{{ new_out }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <p>stdout not currently available.</p>
+    {% endif %}
+</div>

@@ -230,6 +230,30 @@ def api_upload(experiment_id: UUID.hex):
     return jsonify({'message': 'OK'}), 200
 
 
+@app.route('/api/upload/<experiment_id>/<reg_tag>/stdout', methods=['POST'])
+def stdout_upload(experiment_id: UUID.hex, reg_tag: UUID.hex):
+    # Define the query to find the specific experiment and container
+    query = {
+        "_id": experiment_id,
+        "nodes.containers.registry_tag": reg_tag
+    }
+
+    # Define the update to append the log message to the stdout_log
+    update = {
+        "$push": {
+            "nodes.$[].containers.$[container].stdout_log": request.data.decode('utf-8')
+        }
+    }
+    # Execute the update operation
+    result = experiment_collection.update_one(query, update, array_filters=[{"container.registry_tag": reg_tag}])
+
+    # Check if the document was found and updated
+    if result.modified_count == 0:
+        return jsonify({'error': 'Experiment or container not found'}), 404
+
+    return jsonify({'message': 'OK'}), 200
+
+
 @app.route('/status')
 @auth_required
 def status(user: User):
@@ -282,6 +306,35 @@ def get_experiment_results(user: User, experiment_id: UUID.hex):
 
     # Render only the results part of the experiment
     fragment = render_template('partial/experiment_results_fragment.html', experiment=experiment)
+    return make_response(fragment, push_url=False)
+
+
+@app.route('/experiment/<experiment_id>/<reg_tag>/stdout/')
+@auth_required
+def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex):
+    experiment = get_experiment_by_id(experiment_id)
+
+    if experiment is None:
+        # If the experiment_id is not found, return a 404 error
+        return jsonify({'error': f"Experiment '{experiment_id}' not found"}), 404
+
+    if experiment.created_by != user.name_id and not user.admin:
+        return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
+
+    container = None
+
+    for c in experiment.containers:
+        if reg_tag == c.registry_tag:
+            container = c
+
+    if container is None:
+        return jsonify({'error': f"Container '{reg_tag}' not found"}), 404
+
+    smile_kube_utils.update_experiment_status(experiment)
+    experiment_collection.update_one({'_id': experiment_id}, {'$set': {"status": experiment.status.value}})
+
+    # Render only the results part of the experiment
+    fragment = render_template('partial/container_stdout_fragment.html', experiment=experiment)
     return make_response(fragment, push_url=False)
 
 
