@@ -134,7 +134,7 @@ class Experiment:
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Experiment':
         return cls(
-            experiment_uuid=str(doc.get('nodes')),  # Now directly using the string _id
+            experiment_uuid=str(doc.get('experiment_uuid')),  # Now directly using the string _id
             nodes=[Node.from_json(node) for node in doc.get('nodes', [])],
             status=ExperimentStatus(int(doc.get('status'))),
             results=[ResultEntry(**result) for result in doc.get('results', [])],
