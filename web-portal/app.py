@@ -8,6 +8,8 @@ from pymongo import MongoClient
 from flask_htmx import HTMX, make_response
 from uuid import UUID, uuid4
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+
+from db_factory import config_collection, user_collection, experiment_collection
 from models import User, Experiment, ResultEntry, Node, Container, ContainerStatus, NodeType
 
 # Flask
@@ -15,17 +17,9 @@ app = Flask(__name__)
 htmx = HTMX(app)
 bcrypt = Bcrypt(app)
 
-# DB
-mongo_client = MongoClient("mongodb://localhost:27017/")
-db = mongo_client["user_db"]
-
-config_collection = db["config"]
-user_collection = db["users"]
-experiment_collection = db["experiments"]
-
 # To delete all data: for testing!
-# user_collection.delete_many({})
-# experiment_collection.delete_many({})
+user_collection.delete_many({})
+experiment_collection.delete_many({})
 
 for e in experiment_collection.find({}):
     print(e)
@@ -212,7 +206,10 @@ def status(user: User):
     experiments = Experiment.get_mul_by_id(user.experiment_ids)
 
     for experiment in experiments:
-        update_experiment_and_db(experiment)
+        try:
+            update_experiment_and_db(experiment)
+        except Exception as e:
+            flash(f"Error: Experiment update failed '{experiment.experiment_uuid}'")
 
     return render_template('status.html', user=user, experiments=experiments)
 
@@ -319,7 +316,10 @@ def show_experiment(user: User, experiment_id: str):
         flash(f"Error: Invalid permissions for experiment '{experiment_id}'")
         return redirect(url_for('index'))
 
-    update_experiment_and_db(experiment)
+    try:
+        update_experiment_and_db(experiment)
+    except Exception as E:
+        flash(f"Error: Experiment update failed '{experiment_id}'")
 
     return render_template('experiment.html', experiment=experiment)
 

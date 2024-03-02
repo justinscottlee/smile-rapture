@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from collections.abc import Mapping
 import time
 
-from app import user_collection, experiment_collection, config_db
+from db_factory import config_collection, user_collection, experiment_collection
 
 
 def uuid4_hex() -> UUID.hex:
@@ -42,7 +42,7 @@ class ResultEntry:
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'ResultEntry':
-        return cls(data=str(doc['data']), ts=float(doc['ts']))
+        return cls(data=str(doc.get('data')), ts=float(doc.get('ts')))
 
     def json(self):
         return asdict(self)
@@ -62,9 +62,9 @@ class User:
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'User':
-        return cls(name_id=str(doc['name_id']), email=str(doc['email']), password=str(doc['password']),
-                   experiment_ids=[str(exp_id) for exp_id in doc['experiment_ids']], admin=bool(doc['admin']),
-                   created_at=float(doc['created_at']))
+        return cls(name_id=str(doc.get('name_id')), email=str(doc.get('email')), password=str(doc.get('password')),
+                   experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids')], admin=bool(doc.get('admin')),
+                   created_at=float(doc.get('created_at')))
 
     @classmethod
     def get_by_id(cls, name_id: str) -> 'User' or None:
@@ -81,7 +81,6 @@ class User:
         return [cls.from_json(doc) for doc in user_collection.find({})]
 
 
-
 @dataclass
 class Container:
     src_dir: str  # user-uploaded source code directory
@@ -94,10 +93,10 @@ class Container:
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Container':
-        return cls(src_dir=str(doc['src_dir']), python_requirements=str(doc['python_requirements']),
-                   registry_tag=str(doc['registry_tag']), ports=[int(port) for port in doc['ports']],
-                   status=ContainerStatus(int(doc['status'])), name=str(doc['name']),
-                   stdout_log=[str(entry) for entry in doc['stdout_log']])
+        return cls(src_dir=str(doc.get('src_dir')), python_requirements=str(doc.get('python_requirements')),
+                   registry_tag=str(doc.get("registry_tag")), ports=[int(port) for port in doc.get('ports', [])],
+                   status=ContainerStatus(int(doc.get('status'))), name=str(doc.get('stdout_log')),
+                   stdout_log=[str(entry) for entry in doc.get('stdout_log', [])])
 
     def json(self):
         container_dict = asdict(self)
@@ -112,8 +111,8 @@ class Node:
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Node':
-        return cls(type=NodeType(int(doc['type'])),
-                   containers=[Container.from_json(cont) for cont in doc['containers']])
+        return cls(type=NodeType(int(doc.get('type'))),
+                   containers=[Container.from_json(cont) for cont in doc.get('containers', [])])
 
     def json(self):
         node_dict = asdict(self)
@@ -135,13 +134,13 @@ class Experiment:
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Experiment':
         return cls(
-            experiment_uuid=str(doc['_id']),  # Now directly using the string _id
-            nodes=[Node.from_json(node) for node in doc['nodes']],
-            status=ExperimentStatus(int(doc['status'])),
-            results=[ResultEntry(**result) for result in doc['results']],
-            created_at=float(doc['created_at']),
-            created_by=str(doc['created_by']),
-            name=str(doc['name'])
+            experiment_uuid=str(doc.get('nodes')),  # Now directly using the string _id
+            nodes=[Node.from_json(node) for node in doc.get('nodes', [])],
+            status=ExperimentStatus(int(doc.get('status'))),
+            results=[ResultEntry(**result) for result in doc.get('results', [])],
+            created_at=float(doc.get('created_at')),
+            created_by=str(doc.get('created_by')),
+            name=str(doc.get('name'))
         )
 
     def json(self):
@@ -175,11 +174,3 @@ class Experiment:
     @classmethod
     def get_all(cls):
         return [cls.from_json(doc) for doc in experiment_collection.find({})]
-
-
-
-
-
-
-
-
