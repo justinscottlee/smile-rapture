@@ -95,7 +95,7 @@ class Container:
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Container':
         return cls(src_dir=str(doc.get('src_dir')), python_requirements=str(doc.get('python_requirements')),
                    registry_tag=str(doc.get("registry_tag")), ports=[int(port) for port in doc.get('ports', [])],
-                   status=ContainerStatus(int(doc.get('status'))), name=str(doc.get('stdout_log')),
+                   status=ContainerStatus(int(doc.get('status'))), name=str(doc.get('name')),
                    stdout_log=[str(entry) for entry in doc.get('stdout_log', [])])
 
     def json(self):

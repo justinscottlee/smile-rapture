@@ -18,8 +18,8 @@ htmx = HTMX(app)
 bcrypt = Bcrypt(app)
 
 # To delete all data: for testing!
-user_collection.delete_many({})
-experiment_collection.delete_many({})
+# user_collection.delete_many({})
+# experiment_collection.delete_many({})
 
 for e in experiment_collection.find({}):
     print(e)
@@ -195,7 +195,7 @@ def stdout_upload(experiment_id: UUID.hex, reg_tag: UUID.hex):
 
     # Check if the document was found and updated
     if result.modified_count == 0:
-        return jsonify({'error': 'Experiment or container not found'}), 404
+        return jsonify({'error': 'Experiment or container not updated'}), 404
 
     return jsonify({'message': 'OK'}), 200
 
@@ -208,8 +208,8 @@ def status(user: User):
     for experiment in experiments:
         try:
             update_experiment_and_db(experiment)
-        except Exception as e:
-            flash(f"Error: Experiment update failed '{experiment.experiment_uuid}'")
+        except Exception as E:
+            return jsonify({'error': f"Experiment '{experiment.experiment_uuid}' update failed"}), 404
 
     return render_template('status.html', user=user, experiments=experiments)
 
@@ -227,7 +227,10 @@ def get_experiment_status(user: User, experiment_id: UUID.hex):
     if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
-    update_experiment_and_db(experiment)
+    try:
+        update_experiment_and_db(experiment)
+    except Exception as E:
+        return jsonify({'error': f"Experiment '{experiment_id}' update failed"}), 404
 
     # Render only the status part of the experiment
     fragment = render_template('partial/experiment_status_fragment.html', experiment=experiment)
@@ -247,7 +250,10 @@ def get_experiment_results(user: User, experiment_id: UUID.hex):
     if experiment.created_by != user.name_id and not user.admin:
         return jsonify({'error': f"Invalid permissions for experiment '{experiment_id}'"}), 403
 
-    update_experiment_and_db(experiment)
+    try:
+        update_experiment_and_db(experiment)
+    except Exception as E:
+        return jsonify({'error': f"Experiment '{experiment_id}' update failed"}), 404
 
     # Render only the results part of the experiment
     fragment = render_template('partial/experiment_results_fragment.html', experiment=experiment)
@@ -276,7 +282,10 @@ def get_container_stdout(user: User, experiment_id: UUID.hex, reg_tag: UUID.hex)
     if container is None:
         return jsonify({'error': f"Container '{reg_tag}' not found"}), 404
 
-    update_experiment_and_db(experiment)
+    try:
+        update_experiment_and_db(experiment)
+    except Exception as E:
+        return jsonify({'error': f"Experiment '{experiment_id}' update failed"}), 404
 
     container = None
     for n in experiment.nodes:
