@@ -18,13 +18,13 @@ def move_stop():
     motor_leftbow.run(0)
     motor_leftstern.run(0)
 
-def move_foward(move_speed, move_time):
+def move_forward(move_speed, move_time):
     motor_rightbow.run(move_speed)
     motor_rightstern.run(move_speed)
     motor_leftbow.run(-move_speed)
     motor_leftstern.run(-move_speed)
     time.sleep(move_time)
-    bot.move_stop()
+    move_stop()
 
 def move_backward(move_speed, move_time):
     motor_rightbow.run(-move_speed)
@@ -32,7 +32,7 @@ def move_backward(move_speed, move_time):
     motor_leftbow.run(move_speed)
     motor_leftstern.run(move_speed)
     time.sleep(move_time)
-    bot.move_stop()
+    move_stop()
 
 def move_left(move_speed, move_time):
     motor_rightbow.run(move_speed)
@@ -40,7 +40,7 @@ def move_left(move_speed, move_time):
     motor_leftbow.run(move_speed)
     motor_leftstern.run(-move_speed)
     time.sleep(move_time)
-    bot.move_stop()
+    move_stop()
 
 def move_right(move_speed, move_time):
     motor_rightbow.run(-move_speed)
@@ -48,7 +48,7 @@ def move_right(move_speed, move_time):
     motor_leftbow.run(-move_speed)
     motor_leftstern.run(move_speed)
     time.sleep(move_time)
-    bot.move_stop()
+    move_stop()
 
 def turn_right(turn_speed, turn_time):
     motor_rightbow.run(-turn_speed)
@@ -56,7 +56,7 @@ def turn_right(turn_speed, turn_time):
     motor_leftbow.run(-turn_speed)
     motor_leftstern.run(-turn_speed)
     time.sleep(turn_time)
-    bot.move_stop()
+    move_stop()
 
 def turn_left(turn_speed, turn_time):
     motor_rightbow.run(turn_speed)
@@ -64,7 +64,7 @@ def turn_left(turn_speed, turn_time):
     motor_leftbow.run(turn_speed)
     motor_leftstern.run(turn_speed)
     time.sleep(turn_time)
-    bot.move_stop()
+    move_stop()
 
 while True:
     message = socket.recv_json()
@@ -75,7 +75,7 @@ while True:
             match message["direction"]:
                 case "FORWARD":
                     print("Moving forward")
-                    move_foward(move_speed, move_time)
+                    move_forward(move_speed, move_time)
                     socket.send_json({"status": "OK"})
                 case "BACKWARD":
                     print("Moving backward")
