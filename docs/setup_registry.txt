@@ -13,6 +13,17 @@ configs:
 `
 
 In each raspberry pi,
+Edit /boot/cmdline.txt, add
+`
+cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1
+`
+
+`
+curl -sfL https://get.k3s.io | K3S_URL=https://130.191.161.13:6443 K3S_TOKEN=K10d83d15933db71da4a2b221dd2199469c2cbd9d6522c65e39c9cfb1005765e9da::server:fd533f3c5c6be5740d2d121599f36344 sh -
+sudo apt-get update
+sudo apt-get install containerd
+`
+
 Edit /etc/containerd/config.toml:
 `
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors."REGISTRY_IP:5000"]
