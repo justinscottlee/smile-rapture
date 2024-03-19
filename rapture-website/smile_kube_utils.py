@@ -193,11 +193,3 @@ def update_experiment_status(experiment: Experiment):
     if any_jobs_failed:
         experiment.status = ExperimentStatus.STOPPED
         subprocess.Popen(f"sudo k3s kubectl delete namespace {experiment.created_by}", shell=True)
-
-
-# below is only for debugging/development
-if __name__ == "__main__":
-    container = Container("../test-apps/hello-world/src/", "../test-apps/hello-world/requirements.txt", "hello-world", [], ContainerStatus.PENDING, "hello-world")
-    nodes = [Node(NodeType.DRONE_ARM64, [container])]
-    experiment = Experiment("1234", nodes, ExperimentStatus.NOT_READY, [], time.time(), "admin")
-    deploy_experiment(experiment)
