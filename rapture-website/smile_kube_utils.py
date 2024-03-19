@@ -205,7 +205,7 @@ def get_nodes():
     return node_list
 
 
-def is_node_active(hostname: str):
+def is_node_ready(hostname: str):
     status = core_v1.read_node_status(hostname)
     for condition in status.status.conditions:
         if condition.type == "Ready" and condition.status == "True":
