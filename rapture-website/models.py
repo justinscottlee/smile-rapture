@@ -4,6 +4,7 @@ from enum import Enum
 from uuid import UUID, uuid4
 from collections.abc import Mapping
 import time
+import smile_kube_utils
 
 from db_factory import config_collection, user_collection, experiment_collection
 
@@ -30,9 +31,10 @@ class ContainerStatus(Enum):
 
 
 class NodeType(Enum):
-    NODE_AMD64 = 0
-    NODE_ARM64 = 1
-    DRONE_ARM64 = 2
+    UNASSIGNED = 0
+    COMPUTE_PI = 1
+    ROVER_PI = 2
+    DRONE_PI = 3
 
 
 @dataclass
@@ -107,6 +109,7 @@ class Container:
 @dataclass
 class Node:
     type: NodeType
+    hostname: str
     containers: list[Container] = field(default_factory=list)
 
     @classmethod
@@ -119,7 +122,9 @@ class Node:
         node_dict['type'] = int(self.type.value)  # Convert Enum to its value
         node_dict['containers'] = [cont.json() for cont in self.containers]
         return node_dict
-
+    
+    def is_ready(self):
+        return smile_kube_utils.is_node_ready(self.hostname)
 
 @dataclass
 class Experiment:

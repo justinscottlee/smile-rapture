@@ -7,6 +7,10 @@ import subprocess
 
 REGISTRY_ADDRESS = "130.191.161.13:5000"
 
+kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
+core_v1 = kubernetes.client.CoreV1Api()
+batch_v1 = kubernetes.client.BatchV1Api()
+
 
 def __create_dockerfile():
     f = open("dockerfile", "w")
@@ -163,8 +167,6 @@ def deploy_experiment(experiment: Experiment):
 def update_experiment_status(experiment: Experiment):
     if experiment.status == ExperimentStatus.COMPLETED or experiment.status == ExperimentStatus.STOPPED or experiment.status == ExperimentStatus.NOT_READY:
         return
-    kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
-    batch_v1 = kubernetes.client.BatchV1Api()
     jobs = batch_v1.list_namespaced_job(experiment.created_by)
 
     job_list: dict[str, Container] = {}
@@ -193,3 +195,19 @@ def update_experiment_status(experiment: Experiment):
     if any_jobs_failed:
         experiment.status = ExperimentStatus.STOPPED
         subprocess.Popen(f"sudo k3s kubectl delete namespace {experiment.created_by}", shell=True)
+
+
+def get_nodes():
+    nodes = core_v1.list_node()
+    node_list = []
+    for node in nodes.items:
+        node_list.append(Node(NodeType.UNASSIGNED, node.metadata.name))
+    return node_list
+
+
+def is_node_active(hostname: str):
+    status = core_v1.read_node_status(hostname)
+    for condition in status.status.conditions:
+        if condition.type == "Ready" and condition.status == "True":
+            return True
+    return False
