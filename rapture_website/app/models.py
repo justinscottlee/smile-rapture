@@ -4,14 +4,10 @@ from enum import Enum
 from uuid import UUID, uuid4
 from collections.abc import Mapping
 import time
-import smile_kube_utils
+import subprocess
 
-from db_factory import config_collection, user_collection, experiment_collection
-
-
-def uuid4_hex() -> UUID.hex:
-    # Return the hexadecimal representation of UUID
-    return str(uuid4().hex)
+from app.services.db import user_collection, experiment_collection
+from app.services.kube import batch_v1, core_v1
 
 
 class ExperimentStatus(Enum):
@@ -113,7 +109,19 @@ class KubernetesNode:
     hostname: str
 
     def is_ready(self):
-        return smile_kube_utils.is_node_ready(self.hostname)
+        status = core_v1.read_node_status(self.hostname)
+        for condition in status.status.conditions:
+            if condition.type == "Ready" and condition.status == "True":
+                return True
+        return False
+
+    @classmethod
+    def get_all(cls):
+        nodes = core_v1.list_node()
+        node_list = []
+        for node in nodes.items:
+            node_list.append(cls(type=NodeType.UNASSIGNED, hostname=node.metadata.name))
+        return node_list
 
 
 @dataclass
@@ -137,13 +145,47 @@ class Node:
 
 @dataclass
 class Experiment:
-    experiment_uuid: UUID.hex = field(default_factory=uuid4_hex)
+    experiment_uuid: UUID.hex = field(default_factory=(lambda: str(uuid4().hex)))
     nodes: list[Node] = field(default_factory=list)
     status: ExperimentStatus = ExperimentStatus.NOT_READY
     results: list[ResultEntry] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     created_by: str = ""
     name: str = "none"
+
+    def update(self):
+        if self.status == ExperimentStatus.COMPLETED or self.status == ExperimentStatus.STOPPED or self.status == ExperimentStatus.NOT_READY:
+            return
+        jobs = batch_v1.list_namespaced_job(self.created_by)
+
+        job_list: dict[str, Container] = {}
+        for node in self.nodes:
+            if node.kubernetes_node.hostname == "":
+                continue
+            for container in node.containers:
+                job_list[container.name] = container
+
+        all_jobs_succeeded = True
+        any_jobs_failed = False
+        for job in jobs.items:
+            # ignore smile apps, since the user can't track this
+            if job.metadata.name.contains("smile-app"):
+                continue
+            if job.status.active:
+                all_jobs_succeeded = False
+                self.status = ExperimentStatus.RUNNING
+                job_list[job.metadata.name].status = ContainerStatus.RUNNING
+            if job.status.succeeded:
+                job_list[job.metadata.name].status = ContainerStatus.SUCCEEDED
+            if job.status.failed:
+                job_list[job.metadata.name].status = ContainerStatus.FAILED
+                any_jobs_failed = True
+        if all_jobs_succeeded:
+            self.status = ExperimentStatus.COMPLETED
+            subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
+        if any_jobs_failed:
+            self.status = ExperimentStatus.STOPPED
+            subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Experiment':

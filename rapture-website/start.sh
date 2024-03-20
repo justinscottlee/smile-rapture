@@ -1,1 +1,0 @@
-sudo bash -c ". /home/e302d/pyenv/bin/activate; python app.py"

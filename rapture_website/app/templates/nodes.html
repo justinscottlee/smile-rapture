@@ -1,0 +1,15 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <ul class="status-pane-list">
+        {% for node in nodes %}
+            {% set node_index = loop %}
+            <li class="status-pane-li">
+                <div class="status-pane-div">
+                    <h2>Node {{ node_index.index }}</h2>
+                    <p>Type: <strong>{{ node.type }}</strong></p>
+                    <p>Hostname: <strong>{{ node.hostname }}</strong></p>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
