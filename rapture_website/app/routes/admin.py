@@ -1,6 +1,6 @@
-from flask import render_template, flash, Blueprint, current_app
+from flask import render_template, flash, Blueprint
 
-from app.services.node import get_latest_nodes
+from app.services.node import get_latest_nodes, kube_nodes
 from app.services.auth import admin_required
 from app.models import User, Experiment
 
@@ -27,9 +27,8 @@ def admin(user: User):
 @admin_required
 def show_all_nodes(user: User):
     try:
-        nodes = get_latest_nodes()
+        get_latest_nodes()
     except Exception as E:
         flash(f"Error: Could not get node list {str(E)}")
-        nodes = []
 
-    return render_template("nodes.html", nodes=nodes)
+    return render_template("nodes.html", nodes=kube_nodes)
