@@ -115,6 +115,16 @@ class KubernetesNode:
                 return True
         return False
 
+    @classmethod
+    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'KubernetesNode':
+        return cls(type=NodeType(int(doc.get('type'))),
+                   hostname=doc.get('hostname'))
+
+    def json(self):
+        node_dict = asdict(self)
+        node_dict['type'] = int(self.type.value)  # Convert Enum to its value
+        return node_dict
+
 
 @dataclass
 class Node:
@@ -126,12 +136,14 @@ class Node:
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Node':
         return cls(type=NodeType(int(doc.get('type'))),
-                   containers=[Container.from_json(cont) for cont in doc.get('containers', [])])
+                   containers=[Container.from_json(cont) for cont in doc.get('containers', [])],
+                   kubernetes_node=KubernetesNode.from_json(doc.get('kubernetes_node', None)))
 
     def json(self):
         node_dict = asdict(self)
         node_dict['type'] = int(self.type.value)  # Convert Enum to its value
         node_dict['containers'] = [cont.json() for cont in self.containers]
+        node_dict['kubernetes_node'] = self.kubernetes_node.json()
         return node_dict
 
 
