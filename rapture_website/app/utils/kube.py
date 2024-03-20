@@ -147,7 +147,7 @@ def deploy_experiment(experiment: Experiment):
                                   python_requirements="../rapture-smile-app/requirements.txt",
                                   registry_tag=f"rapture-smile-app-{experiment.experiment_uuid}", ports=[5555],
                                   status=ContainerStatus.PENDING, name=f"rapture-smile-app",
-                                  hostname=__select_random_node(NodeType.COMPUTE_PI))
+                                  hostname=__select_random_node(NodeType.COMPUTE_PI).hostname)
     print("creating Rapture Smile App image...", end=" ")
     __generate_image(experiment, rapture_smile_app)
     print("done")
