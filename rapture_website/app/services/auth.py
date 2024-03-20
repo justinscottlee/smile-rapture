@@ -61,7 +61,7 @@ def admin_required(f):
             flash(f"Error: Invalid permissions for this route")
 
             # return render_template('error.html', err='Invalid session name_id!')
-            return redirect(url_for('mainindex'))
+            return redirect(url_for('main.index'))
 
         return f(user, *args, **kwargs)
 
@@ -70,12 +70,24 @@ def admin_required(f):
 
 def check_and_create_admin(flask_app):
     # create admin user if admin does not exist
-    if not user_collection.find_one({"name_id": "admin"}):
+    admin_user = user_collection.find_one({"name_id": "admin"})
+    if not admin_user:
         # Hash the password with bcrypt
-        a_pass = str(flask_app.generate_password_hash(str('admin')).decode('utf-8'))
+        a_pass = str(flask_app.generate_password_hash('admin').decode('utf-8'))
 
         # Create user object and push to DB
-        user_collection.insert_one(User(name_id='admin', email='none@none.net',
-                                        password=a_pass, admin=True).json())
+        user_collection.insert_one({
+            "name_id": 'admin',
+            "email": 'none@none.net',
+            "password": a_pass,
+            "admin": True
+        })
 
         del a_pass
+    else:
+        # If admin user exists but the 'admin' flag is not True, update it
+        if not admin_user.get('admin'):
+            user_collection.update_one(
+                {"name_id": "admin"},
+                {"$set": {"admin": True}}
+            )
