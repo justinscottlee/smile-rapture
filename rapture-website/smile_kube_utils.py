@@ -3,6 +3,7 @@ import shutil
 from models import *
 import yaml
 import kubernetes
+import random
 import subprocess
 
 REGISTRY_ADDRESS = "130.191.161.13:5000"
@@ -10,6 +11,9 @@ REGISTRY_ADDRESS = "130.191.161.13:5000"
 kubernetes.config.load_kube_config(config_file="/etc/rancher/k3s/k3s.yaml")
 core_v1 = kubernetes.client.CoreV1Api()
 batch_v1 = kubernetes.client.BatchV1Api()
+
+
+kubernetes_nodes: list[KubernetesNode] = []
 
 
 def __create_dockerfile():
@@ -39,7 +43,7 @@ def __generate_image(experiment: Experiment, container: Container):
     # copy container files to build directory
     shutil.copytree(container.src_dir, "src/")
     shutil.copy(container.python_requirements, "requirements.txt")
-    shutil.copy("../helper-module/start.sh", "src/start.sh")
+    shutil.copy("../smile-module/start.sh", "src/start.sh")
 
     with open("src/start.sh", "r") as f:
         lines = f.readlines()
@@ -87,7 +91,8 @@ def __create_yaml(experiment: Experiment, containers: list[Container]):
                             "image": f"{REGISTRY_ADDRESS}/{experiment.created_by}/{container.registry_tag}",
                             "imagePullPolicy": "Always"
                         }],
-                        "restartPolicy": "Never"
+                        "restartPolicy": "Never",
+                        "nodeName": f"{container.hostname}"
                     }
                 },
                 "backoffLimit": 0
@@ -121,6 +126,13 @@ def __create_yaml(experiment: Experiment, containers: list[Container]):
         yaml.dump_all(documents, file)
 
 
+def __select_random_node(node_type: NodeType):
+    for kubernetes_node in kubernetes_nodes:
+        if kubernetes_node.type == node_type:
+            return kubernetes_node
+    return ""
+
+
 def deploy_experiment(experiment: Experiment):
     os.system(f"sudo k3s kubectl delete namespace {experiment.created_by}")
     print("creating dockerfile...", end=" ")
@@ -129,33 +141,58 @@ def deploy_experiment(experiment: Experiment):
 
     containers = []
 
-    with open("../helper-app/src/main.py", "r") as f:
+    # Create RAPTURE SMILE app
+    with open("../rapture-smile-app/src/main.py", "r") as f:
         lines = f.readlines()
-
-    with open("../helper-app/src/main.py", "w") as f:
+    with open("../rapture-smile-app/src/main.py", "w") as f:
         lines[0] = f"EXPERIMENT_UUID = \"{experiment.experiment_uuid}\"\n"
         f.writelines(lines)
-
-    smile_container = Container(src_dir="../helper-app/src/", python_requirements="../helper-app/requirements.txt",
-                                registry_tag="smile-app", ports=[5555],
-                                status=ContainerStatus.PENDING, name="smile-app")
-
-    print("creating smile container image...", end=" ")
-    __generate_image(experiment, smile_container)
+    rapture_smile_app = Container(src_dir="../rapture-smile-app/src/", python_requirements="../rapture-smile-app/requirements.txt",
+                                registry_tag=f"rapture-smile-app-{experiment.experiment_uuid}", ports=[5555],
+                                status=ContainerStatus.PENDING, name=f"rapture-smile-app-{experiment.experiment_uuid}",
+                                hostname=__select_random_node(NodeType.COMPUTE_PI))
+    print("creating Rapture Smile App image...", end=" ")
+    __generate_image(experiment, rapture_smile_app)
     print("done")
-
-    containers.append(smile_container)
+    containers.append(rapture_smile_app)
 
     for node in experiment.nodes:
+        if node.type == NodeType.ROVER_PI:
+            with open("../rover-smile-app/src/main.py", "r") as f:
+                lines = f.readlines()
+            with open("../rover-smile-app/src/main.py", "w") as f:
+                lines[0] = f"ROBOT_NAME = \"{node.kubernetes_node.hostname}\"\n"
+                f.writelines(lines)
+            rover_smile_app = Container(src_dir="../rover-smile-app/src/", python_requirements="../rover-smile-app/requirements.txt",
+                                        registry_tag=f"{node.kubernetes_node.hostname}-rover-smile-app-{experiment.experiment_uuid}", ports=[5555],
+                                        status=ContainerStatus.PENDING, name=f"{node.kubernetes_node.hostname}-rover-smile-app-{experiment.experiment_uuid}",
+                                        hostname=node.kubernetes_node.hostname)
+            print(f"creating Rover Smile App image for {node.kubernetes_node.hostname}...", end=" ")
+            __generate_image(experiment, rover_smile_app)
+            print("done")
+            containers.append(rover_smile_app)
+
+    # Create user apps
+    used_nodes = []
+    for node in experiment.nodes:
+        if node.kubernetes_node == None:
+            kubernetes_node = None
+            while True:
+                kubernetes_node = __select_random_node(node.type)
+                if kubernetes_node not in used_nodes:
+                    break
+            used_nodes.append(kubernetes_node)
+            node.kubernetes_node = kubernetes_node
         for container in node.containers:
-            print("creating node container image...", end=" ")
+            container.hostname = node.kubernetes_node.hostname
+            print(f"creating user {container.name} App image...", end=" ")
             with open(container.src_dir + "/smile.py", "a") as f:
                 f.write(f"\n__init(\"{experiment.created_by}\")")
             __generate_image(experiment, container)
             print("done")
             containers.append(container)
 
-    print("creating k3s deployment file...", end=" ")
+    print("creating k3s deployment yaml...", end=" ")
     __create_yaml(experiment, containers)
     print("done")
     print("deploying...", end=" ")
@@ -171,14 +208,16 @@ def update_experiment_status(experiment: Experiment):
 
     job_list: dict[str, Container] = {}
     for node in experiment.nodes:
+        if node.kubernetes_node.hostname == "":
+            continue
         for container in node.containers:
             job_list[container.name] = container
 
     all_jobs_succeeded = True
     any_jobs_failed = False
     for job in jobs.items:
-        # ignore smile-app, because the user can't track this
-        if job.metadata.name == "smile-app":
+        # ignore smile apps, since the user can't track this
+        if job.metadata.name.contains("smile-app"):
             continue
         if job.status.active:
             all_jobs_succeeded = False

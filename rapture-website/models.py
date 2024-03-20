@@ -91,6 +91,7 @@ class Container:
     ports: list[int]  # list of ports to open within kubernetes network for inter-container communication
     status: ContainerStatus
     name: str  # user-defined container name
+    hostname: str = ""  # hostname of the node where this container is running
     stdout_log: list[str] = field(default_factory=list)  # stdout pipe
 
     @classmethod
@@ -107,10 +108,19 @@ class Container:
 
 
 @dataclass
-class Node:
+class KubernetesNode:
     type: NodeType
     hostname: str
+
+    def is_ready(self):
+        return smile_kube_utils.is_node_ready(self.hostname)
+
+
+@dataclass
+class Node:
+    type: NodeType
     containers: list[Container] = field(default_factory=list)
+    kubernetes_node: KubernetesNode = None
 
     @classmethod
     def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Node':
@@ -122,9 +132,7 @@ class Node:
         node_dict['type'] = int(self.type.value)  # Convert Enum to its value
         node_dict['containers'] = [cont.json() for cont in self.containers]
         return node_dict
-    
-    def is_ready(self):
-        return smile_kube_utils.is_node_ready(self.hostname)
+
 
 @dataclass
 class Experiment:
