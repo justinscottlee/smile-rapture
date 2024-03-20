@@ -149,7 +149,7 @@ def deploy_experiment(experiment: Experiment):
         f.writelines(lines)
     rapture_smile_app = Container(src_dir="../rapture-smile-app/src/", python_requirements="../rapture-smile-app/requirements.txt",
                                 registry_tag=f"rapture-smile-app-{experiment.experiment_uuid}", ports=[5555],
-                                status=ContainerStatus.PENDING, name=f"rapture-smile-app-{experiment.experiment_uuid}",
+                                status=ContainerStatus.PENDING, name=f"rapture-smile-app",
                                 hostname=__select_random_node(NodeType.COMPUTE_PI))
     print("creating Rapture Smile App image...", end=" ")
     __generate_image(experiment, rapture_smile_app)
@@ -164,10 +164,10 @@ def deploy_experiment(experiment: Experiment):
                 lines[0] = f"ROBOT_NAME = \"{node.kubernetes_node.hostname}\"\n"
                 f.writelines(lines)
             rover_smile_app = Container(src_dir="../rover-smile-app/src/", python_requirements="../rover-smile-app/requirements.txt",
-                                        registry_tag=f"{node.kubernetes_node.hostname}-rover-smile-app-{experiment.experiment_uuid}", ports=[5555],
-                                        status=ContainerStatus.PENDING, name=f"{node.kubernetes_node.hostname}-rover-smile-app-{experiment.experiment_uuid}",
+                                        registry_tag=f"{node.nickname}-rover-smile-app-{experiment.experiment_uuid}", ports=[5555],
+                                        status=ContainerStatus.PENDING, name=f"{node.nickname}-rover-smile-app",
                                         hostname=node.kubernetes_node.hostname)
-            print(f"creating Rover Smile App image for {node.kubernetes_node.hostname}...", end=" ")
+            print(f"creating Rover Smile App image for {node.nickname}...", end=" ")
             __generate_image(experiment, rover_smile_app)
             print("done")
             containers.append(rover_smile_app)
@@ -186,8 +186,12 @@ def deploy_experiment(experiment: Experiment):
         for container in node.containers:
             container.hostname = node.kubernetes_node.hostname
             print(f"creating user {container.name} App image...", end=" ")
+            robot_names = ""
+            for node in experiment.nodes:
+                if node.type == NodeType.ROVER_PI:
+                    robot_names += f"\"{node.nickname}\","
             with open(container.src_dir + "/smile.py", "a") as f:
-                f.write(f"\n__init(\"{experiment.created_by}\")")
+                f.write(f"\n__init(\"{experiment.created_by}\", [{robot_names}])")
             __generate_image(experiment, container)
             print("done")
             containers.append(container)

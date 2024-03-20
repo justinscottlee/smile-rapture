@@ -11,10 +11,10 @@ def __init(user_name: str, robot_names: list[str]):
     debug = False
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://smile-app-svc.{user_name}:5555")
+    socket.connect(f"tcp://rapture-smile-app-svc.{user_name}:5555")
     for robot_name in robot_names:
         robot_socket = context.socket(zmq.REQ)
-        robot_socket.connect(f"tcp://{robot_name}-robot-smile-app-svc.{user_name}:5555")
+        robot_socket.connect(f"tcp://{robot_name}-rover-smile-app-svc.{user_name}:5555")
         robot_sockets[robot_name] = robot_socket
 
 

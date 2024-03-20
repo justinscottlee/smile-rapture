@@ -119,6 +119,7 @@ class KubernetesNode:
 @dataclass
 class Node:
     type: NodeType
+    nickname: str = ""
     containers: list[Container] = field(default_factory=list)
     kubernetes_node: KubernetesNode = None
 
