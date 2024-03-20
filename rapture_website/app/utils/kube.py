@@ -4,10 +4,8 @@ import shutil
 import yaml
 from flask import current_app
 
-from app.services.kube import core_v1
-from app.models import Experiment, Container, ContainerStatus, ExperimentStatus, Node, NodeType, KubernetesNode
-
-kubernetes_nodes: list[KubernetesNode] = []
+from app.services.node import kube_nodes
+from app.models import Experiment, Container, ContainerStatus, ExperimentStatus, NodeType
 
 
 def __create_dockerfile():
@@ -125,7 +123,7 @@ def __create_yaml(experiment: Experiment, containers: list[Container]):
 
 
 def __select_random_node(node_type: NodeType):
-    for kubernetes_node in kubernetes_nodes:
+    for kubernetes_node in kube_nodes:
         if kubernetes_node.type == node_type:
             return kubernetes_node
     return ""
@@ -183,6 +181,7 @@ def deploy_experiment(experiment: Experiment):
                 if kubernetes_node not in used_nodes:
                     break
             used_nodes.append(kubernetes_node)
+            print(kubernetes_node)
             node.kubernetes_node = kubernetes_node
         for container in node.containers:
             container.hostname = node.kubernetes_node.hostname
@@ -204,11 +203,3 @@ def deploy_experiment(experiment: Experiment):
     os.system("sudo k3s kubectl create -f generated.yaml")
     print("done")
     experiment.status = ExperimentStatus.RUNNING
-
-
-def get_nodes():
-    nodes = core_v1.list_node()
-    node_list = []
-    for node in nodes.items:
-        node_list.append(KubernetesNode(type=NodeType.UNASSIGNED, hostname=node.metadata.name))
-    return node_list

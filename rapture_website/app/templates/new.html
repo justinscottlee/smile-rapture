@@ -180,7 +180,7 @@
         <div>
             <label for="node-type-${nodeNumber}">Node Type:</label>
             <select id="node-type-${nodeNumber}" name="node-type-${nodeNumber}">
-                {% for type in node_types %}
+                {% for type in current_app.config["NODE_TYPES"] %}
                     <option value="{{ type }}">{{ type }}</option>
                 {% endfor %}
             </select>
@@ -213,7 +213,7 @@
 
                     <label for="container-image-${nodeNumber}">Container Image:</label>
                     <select id="container-image-${nodeNumber}" name="container-image-${nodeNumber}" required>
-                        {% for img in valid_images %}
+                        {% for img in current_app.config["VALID_IMAGES"] %}
                             <option value="{{ img }}">{{ img }}</option>
                         {% endfor %}
                     </select>

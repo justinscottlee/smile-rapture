@@ -1,14 +1,14 @@
-from flask import render_template, flash, Blueprint
+from flask import render_template, flash, Blueprint, current_app
 
-from app.models import KubernetesNode
+from app.services.node import get_latest_nodes
 from app.services.auth import admin_required
 from app.models import User, Experiment
 
 # Create a Blueprint for auth-related routes
-bp = Blueprint('admin', __name__)
+bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
-@bp.route('/admin')
+@bp.route('/')
 @admin_required
 def admin(user: User):
     experiments = Experiment.get_all()
@@ -25,9 +25,9 @@ def admin(user: User):
 
 @bp.route('/nodes', methods=['GET'])
 @admin_required
-def show_all_nodes(_):
+def show_all_nodes(user: User):
     try:
-        nodes = KubernetesNode.get_all()
+        nodes = get_latest_nodes()
     except Exception as E:
         flash(f"Error: Could not get node list {str(E)}")
         nodes = []

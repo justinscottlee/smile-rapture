@@ -1,5 +1,9 @@
 {% extends 'layout.html' %}
 {% block content %}
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"
+            integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4"
+            crossorigin="anonymous">
+    </script>
     <ul class="status-pane-list">
         {% for node in nodes %}
             {% set node_index = loop %}
@@ -8,8 +12,43 @@
                     <h2>Node {{ node_index.index }}</h2>
                     <p>Type: <strong>{{ node.type }}</strong></p>
                     <p>Hostname: <strong>{{ node.hostname }}</strong></p>
+                    <!-- Dropdown for node options -->
+                    <label for="dropdown-{{ node_index }}">Select Value:</label>
+                    <select id="dropdown-{{ node_index }}" class="dropdown">
+                        {% for value in current_app.config['NODE_TYPES'] %}
+                            <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                    <button onclick="submitValue({{ node_index }})">Confirm</button>
+                    <span id="success-{{ node_index }}"></span>
+                </div>
+            </li>
+        {% else %}
+            <li class="status-pane-li">
+                <div class="status-pane-div">
+                    No nodes are currently available.
                 </div>
             </li>
         {% endfor %}
     </ul>
+    <script>
+        let socket = io();
+
+        function submitValue(nodeIndex) {
+            let selectElement = document.getElementById('dropdown-' + nodeIndex);
+            let selectedValue = selectElement.options[selectElement.selectedIndex].value;
+            socket.emit('update_node_type', {index: nodeIndex, value: selectedValue});
+
+            // Listen for the success response
+            socket.on('update_success_' + nodeIndex, function (data) {
+                if (data.success) {
+                    let successElement = document.getElementById('success-' + nodeIndex);
+                    successElement.innerHTML = 'Updated successfully!';
+                    setTimeout(function () {
+                        successElement.innerHTML = '';
+                    }, 5000); // Clear after 5 seconds
+                }
+            });
+        }
+    </script>
 {% endblock %}

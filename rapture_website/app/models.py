@@ -115,14 +115,6 @@ class KubernetesNode:
                 return True
         return False
 
-    @classmethod
-    def get_all(cls):
-        nodes = core_v1.list_node()
-        node_list = []
-        for node in nodes.items:
-            node_list.append(cls(type=NodeType.UNASSIGNED, hostname=node.metadata.name))
-        return node_list
-
 
 @dataclass
 class Node:

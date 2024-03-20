@@ -27,8 +27,9 @@ def create_app(config_class=Config):
     from app.routes.admin import bp as admin_bp
     app.register_blueprint(admin_bp)
 
-    from app.context_processor import utility_processor
+    from app.context_processor import utility_processor, inject_current_app
     app.context_processor(utility_processor)
+    app.context_processor(inject_current_app)
 
     from app.services.auth import check_and_create_admin
     check_and_create_admin(flask_app=app)

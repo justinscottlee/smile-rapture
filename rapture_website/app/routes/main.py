@@ -7,9 +7,9 @@ from flask import Blueprint, render_template, flash, redirect, url_for, request,
 from flask_htmx import make_response
 
 from app.models import User, Experiment, ResultEntry, Node, NodeType, Container, ContainerStatus
-from app.services.auth import auth_required, admin_required
+from app.services.auth import auth_required
 from app.services.db import experiment_collection, user_collection
-from app.utils.kube import get_nodes, deploy_experiment
+from app.utils.kube import deploy_experiment
 
 bp = Blueprint('main', __name__)
 
@@ -67,7 +67,7 @@ def status(user: User):
         try:
             experiment.update()
         except Exception as E:
-            return jsonify({'error': f"Experiment '{experiment.experiment_uuid}' update failed: {str(E)}"}), 404
+            flash(f"Error: Experiment update failed '{experiment.experiment_uuid}' - {str(E)}")
 
     return render_template('status.html', user=user, experiments=experiments)
 
@@ -182,8 +182,7 @@ def show_experiment(user: User, experiment_id: str):
     try:
         experiment.update()
     except Exception as E:
-        flash(f"Error: Experiment update failed '{experiment_id}'")
-        flash(f'Error: {str(E)}')
+        flash(f"Error: Experiment update failed '{experiment_id}' {str(E)}")
 
     return render_template('experiment.html', experiment=experiment)
 
@@ -191,8 +190,7 @@ def show_experiment(user: User, experiment_id: str):
 @bp.route('/new')
 @auth_required
 def new(user: User):
-    return render_template('new.html', user=user, node_types=current_app.config["NODE_TYPES"],
-                           valid_images=current_app.config["VALID_IMAGES"])
+    return render_template('new.html', user=user)
 
 
 @bp.route('/upload_file', methods=['POST'])
