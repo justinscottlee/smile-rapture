@@ -1,4 +1,4 @@
-import typing
+from typing import Mapping, Any, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from uuid import UUID, uuid4
@@ -39,7 +39,7 @@ class ResultEntry:
     ts: float = field(default_factory=time.time)
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'ResultEntry':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'ResultEntry':
         return cls(data=str(doc.get('data')), ts=float(doc.get('ts')))
 
     def json(self):
@@ -59,7 +59,7 @@ class User:
         return asdict(self)
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'User':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'User':
         return cls(name_id=str(doc.get('name_id')), email=str(doc.get('email')), password=str(doc.get('password')),
                    experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids')], admin=bool(doc.get('admin')),
                    created_at=float(doc.get('created_at')))
@@ -91,7 +91,7 @@ class Container:
     stdout_log: list[str] = field(default_factory=list)  # stdout pipe
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Container':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'Container':
         return cls(src_dir=str(doc.get('src_dir')), python_requirements=str(doc.get('python_requirements')),
                    registry_tag=str(doc.get("registry_tag")), ports=[int(port) for port in doc.get('ports', [])],
                    status=ContainerStatus(int(doc.get('status'))), name=str(doc.get('name')),
@@ -116,7 +116,7 @@ class KubernetesNode:
         return False
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'KubernetesNode':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'KubernetesNode':
         return cls(type=NodeType(int(doc.get('type'))),
                    hostname=doc.get('hostname'))
 
@@ -134,10 +134,16 @@ class Node:
     kubernetes_node: KubernetesNode = None
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Node':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'Node':
+        kubernetes_node_data = doc.get('kubernetes_node')
+        if kubernetes_node_data:  # Check if kubernetes_node_data is not None and not empty
+            kubernetes_node = KubernetesNode.from_json(kubernetes_node_data)
+        else:
+            kubernetes_node = None
+
         return cls(type=NodeType(int(doc.get('type'))),
                    containers=[Container.from_json(cont) for cont in doc.get('containers', [])],
-                   kubernetes_node=KubernetesNode.from_json(doc.get('kubernetes_node', None)))
+                   kubernetes_node=kubernetes_node)
 
     def json(self):
         node_dict = asdict(self)
@@ -192,7 +198,7 @@ class Experiment:
             subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
 
     @classmethod
-    def from_json(cls, doc: Mapping[str, typing.Any]) -> 'Experiment':
+    def from_json(cls, doc: Mapping[str, Any]) -> 'Experiment':
         return cls(
             experiment_uuid=str(doc.get('_id')),  # Now directly using the string _id
             nodes=[Node.from_json(node) for node in doc.get('nodes', [])],
