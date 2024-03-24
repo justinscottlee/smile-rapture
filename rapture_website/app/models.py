@@ -143,7 +143,7 @@ class Node:
         else:
             kubernetes_node = None
 
-        return cls(type=NodeType(int(doc.get('type'))),
+        return cls(type=NodeType(int(doc.get('type'))), nickname=str(doc.get('nickname')),
                    containers=[Container.from_json(cont) for cont in doc.get('containers', [])],
                    kubernetes_node=kubernetes_node)
 
@@ -171,6 +171,7 @@ class Experiment:
 
         if current_app.config['FAKE_MODE']:
             self.status = ExperimentStatus.STOPPED
+            experiment_collection.update_one({"_id": self.experiment_uuid}, {"$set": self.json()})
             return
 
         jobs = batch_v1.list_namespaced_job(self.created_by)
@@ -186,7 +187,7 @@ class Experiment:
         any_jobs_failed = False
         for job in jobs.items:
             # ignore smile apps, since the user can't track this
-            if job.metadata.name.contains("smile-app"):
+            if "smile-app" in job.metadata.name:
                 continue
             if job.status.active:
                 all_jobs_succeeded = False
@@ -203,6 +204,8 @@ class Experiment:
         if any_jobs_failed:
             self.status = ExperimentStatus.STOPPED
             subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
+        
+        experiment_collection.update_one({"_id": self.experiment_uuid}, {"$set": self.json()})
 
     @classmethod
     def from_json(cls, doc: Mapping[str, Any]) -> 'Experiment':

@@ -124,9 +124,11 @@ def __create_yaml(experiment: Experiment, containers: list[Container]):
 
 def __select_random_node(node_type: NodeType):
     for kubernetes_node in kube_nodes:
+        if not kubernetes_node.is_ready():
+            continue
         if kubernetes_node.type == node_type:
             return kubernetes_node
-    return ""
+    return Exception("No available nodes __select_random_node")
 
 
 def deploy_experiment(experiment: Experiment):
@@ -143,11 +145,13 @@ def deploy_experiment(experiment: Experiment):
     with open("../rapture-smile-app/src/main.py", "w") as f:
         lines[0] = f"EXPERIMENT_UUID = \"{experiment.experiment_uuid}\"\n"
         f.writelines(lines)
+
     rapture_smile_app = Container(src_dir="../rapture-smile-app/src/",
                                   python_requirements="../rapture-smile-app/requirements.txt",
                                   registry_tag=f"rapture-smile-app-{experiment.experiment_uuid}", ports=[5555],
                                   status=ContainerStatus.PENDING, name=f"rapture-smile-app",
                                   hostname=__select_random_node(NodeType.COMPUTE_PI).hostname)
+
     print("creating Rapture Smile App image...", end=" ")
     __generate_image(experiment, rapture_smile_app)
     print("done")

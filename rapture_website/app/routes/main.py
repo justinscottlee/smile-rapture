@@ -219,13 +219,14 @@ def upload_file(user: User):
     for node_id in range(1, node_count + 1):
         container_count = int(request.form.get(f'containerCountNode{node_id}'))
         node_type = str(request.form.get(f'node-type-{node_id}'))
+        node_name = str(request.form.get(f'node-name-{node_id}'))
 
         if container_count <= 0:
             flash(f'Error: Container count wrongly specified in node{node_id}')
             return redirect(url_for('main.new'))
 
         try:
-            curr_node = Node(NodeType[node_type])
+            curr_node = Node(NodeType[node_type], nickname=node_name)
             print(curr_node)
         except ValueError as e:
             print(e)

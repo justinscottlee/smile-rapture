@@ -184,6 +184,9 @@
                     <option value="{{ type }}">{{ type }}</option>
                 {% endfor %}
             </select>
+
+            <label for="node-name-${nodeNumber}">Node Name:</label>
+            <input title="Please input a valid node name following RFC 1123 standard." type="text" id="node-name-${nodeNumber}" pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?" name="node-name-${nodeNumber}" placeholder="Enter unique node name" required>
         </div>
         <div class="containers" id="containers-node-${nodeNumber}"></div>
         <button type="button" onclick="addContainerToNode(${nodeNumber})">Add Container</button>
