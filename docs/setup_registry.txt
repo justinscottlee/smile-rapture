@@ -24,7 +24,7 @@ sudo apt-get update
 sudo apt-get install containerd
 `
 
-Edit /etc/containerd/config.toml:
+Edit /var/lib/rancher/k3s/agent/etc/containerd/config.toml:
 `
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors."REGISTRY_IP:5000"]
   endpoint = ["http://REGISTRY_IP:5000"]
