@@ -151,7 +151,7 @@ class Node:
         node_dict = asdict(self)
         node_dict['type'] = int(self.type.value)  # Convert Enum to its value
         node_dict['containers'] = [cont.json() for cont in self.containers]
-        node_dict['kubernetes_node'] = self.kubernetes_node.json()
+        node_dict['kubernetes_node'] = None if self.kubernetes_node is None else self.kubernetes_node.json()
         return node_dict
 
 

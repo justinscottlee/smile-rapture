@@ -8,7 +8,8 @@ from flask_htmx import make_response
 
 from app.models import User, Experiment, ResultEntry, Node, NodeType, Container, ContainerStatus
 from app.services.auth import auth_required
-from app.services.db import experiment_collection, user_collection
+from app.services.db import experiment_collection, user_collection, config_collection
+from app.services.node import kube_nodes
 from app.services.experiments import admin_experiment_queue
 from app.utils.kube import deploy_experiment
 
@@ -286,6 +287,11 @@ def upload_file(user: User):
     for node in experiment.nodes:
         if node.type == NodeType.ROVER_PI or node.type == NodeType.DRONE_PI:
             admin_experiment_queue.append(experiment)
+            admin_req = True
+
+            # Save the admin experiment queue to the config db collection, but just the experiment UUIDs
+            config_collection.update_one({"_id": "admin_experiment_queue"},
+                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}})
             break
 
     if not admin_req:

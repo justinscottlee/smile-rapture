@@ -79,20 +79,19 @@
                                     {% endfor %}
                                 </select>
                             {% endfor %}
-                            <button type="button" id="{{ exp.experiment_uuid }}" onclick="buttonPressed()">Start
+                            <button type="button" id="{{ exp.experiment_uuid }}" onclick="buttonPressed('{{ exp.experiment_uuid }}')">Start
                                 Experiment
                             </button>
                             <script type="text/javascript">
                                 let socket = io();
 
                                 // When the button is pressed, send the experiment start signal
-                                function buttonPressed(event) {
-                                    let button = document.getElementById(event.target.id);
-
+                                function buttonPressed(uuid) {
                                     socket.emit('start_exp_press', {
-                                        id: button.id,
+                                        id: uuid,
                                         node_assignment: [
                                             {% for node in exp.nodes %}
+                                                {% set node_index = loop.index0 %}
                                                 document.getElementById('sel-{{ exp.experiment_uuid }}-{{ node_index }}').value,
                                             {% endfor %}
                                         ]
