@@ -63,7 +63,7 @@ class User:
     @classmethod
     def from_json(cls, doc: Mapping[str, Any]) -> 'User':
         return cls(name_id=str(doc.get('name_id')), email=str(doc.get('email')), password=str(doc.get('password')),
-                   experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids')], admin=bool(doc.get('admin')),
+                   experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids', [])], admin=bool(doc.get('admin')),
                    created_at=float(doc.get('created_at')))
 
     @classmethod

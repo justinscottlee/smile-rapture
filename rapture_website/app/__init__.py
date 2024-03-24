@@ -35,7 +35,7 @@ def create_app(config_class=Config):
     app.context_processor(inject_current_app)
 
     from app.services.auth import check_and_create_admin
-    check_and_create_admin(flask_app=app)
+    check_and_create_admin()
 
     # SocketIO imports
     from app.routes.api.node import update_node_type

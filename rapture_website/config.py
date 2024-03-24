@@ -7,7 +7,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    FAKE_MODE = True
+    FAKE_MODE = False
     UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads/")
     SECRET_KEY = os.urandom(24).hex()
     REGISTRY_URI = "130.191.162.166:5000"

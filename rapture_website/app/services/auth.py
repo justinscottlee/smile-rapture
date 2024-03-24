@@ -68,20 +68,16 @@ def admin_required(f):
     return decorated_function
 
 
-def check_and_create_admin(flask_app):
+def check_and_create_admin():
     # create admin user if admin does not exist
     admin_user = user_collection.find_one({"name_id": "admin"})
+
     if not admin_user:
         # Hash the password with bcrypt
-        a_pass = str(flask_app.generate_password_hash('admin').decode('utf-8'))
+        a_pass = str(bcrypt.generate_password_hash('admin').decode('utf-8'))
 
         # Create user object and push to DB
-        user_collection.insert_one({
-            "name_id": 'admin',
-            "email": 'none@none.net',
-            "password": a_pass,
-            "admin": True
-        })
+        user_collection.insert_one(User(name_id="admin", email="admin@admin.com", password=a_pass, admin=True).json())
 
         del a_pass
     else:
