@@ -9,6 +9,7 @@ from flask_htmx import make_response
 from app.models import User, Experiment, ResultEntry, Node, NodeType, Container, ContainerStatus
 from app.services.auth import auth_required
 from app.services.db import experiment_collection, user_collection
+from app.services.experiments import admin_experiment_queue
 from app.utils.kube import deploy_experiment
 
 bp = Blueprint('main', __name__)
@@ -281,7 +282,14 @@ def upload_file(user: User):
         experiment.nodes.append(curr_node)  # TODO verify this isn't broken
 
     # deploy exp
-    deploy_experiment(experiment)
+    admin_req = False
+    for node in experiment.nodes:
+        if node.type == NodeType.ROVER_PI or node.type == NodeType.DRONE_PI:
+            admin_experiment_queue.append(experiment)
+            break
+
+    if not admin_req:
+        deploy_experiment(experiment)
 
     # Add experiment
     experiment_collection.insert_one(experiment.json())

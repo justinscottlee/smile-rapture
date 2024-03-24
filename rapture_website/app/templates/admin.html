@@ -1,6 +1,7 @@
 {% extends 'layout.html' %}
 {% block content %}
     <style>
+        a
         button {
             background-color: #007bff;
             color: white;
@@ -18,20 +19,101 @@
         }
     </style>
     <h2>Admin</h2>
-    <div class="status-pane-div">
+    <div class="status-pane-div" style="margin-bottom: 20px">
         <h2>Nodes</h2>
-        <a href="{{ url_for('admin.node_config_view') }}">
+        <a href="{{ url_for('admin.node_config_view') }}" style="text-decoration: none">
             <button>Reset Node Configuration</button>
         </a>
         <ul class="status-pane-list">
             {% for node in nodes %}
                 {% set node_index = loop.index0 %}
                 <li class="status-pane-li">
-                    <div class="status-pane-div">
+                    <div class="status-pane-div" style="background: #f4f4f4;">
                         <h2>Node {{ node_index.index }}</h2>
                         <p>Type: <strong>{{ node.type }}</strong></p>
                         <p>Hostname: <strong>{{ node.hostname }}</strong></p>
                         <p>Last Active: <strong>{{ node.hostname }}</strong></p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="status-pane-div" style="margin-bottom: 20px">
+        <h2>Experiment Queue</h2>
+        <ul class="status-pane-list">
+            {% for exp in admin_exp %}
+                <li class="status-pane-li">
+                    <div class="status-pane-div" style="background: #f4f4f4; display: flex;
+                            flex-flow: row;
+                            justify-content: space-between;">
+                        <div>
+                            <h2><a style="text-decoration: none"
+                                   href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
+                            <p>Created by <strong>{{ exp.created_by }}</strong> at
+                                <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
+                            <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
+                            <h4>Status:</h4>
+                            <p id="status-{{ exp.experiment_uuid }}">{{ exp.status.name.lower() }}</p>
+                            <h4>Output Log:</h4>
+                            {% if exp.results %}
+                                <div class="terminal">
+                                    <div class="log-content">
+                                        {% for result in exp.results %}
+                                            <div>{{ ts_formatted(result.ts) }}: {{ result.data }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <p>No results are currently available.</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% for node in exp.nodes %}
+                                {% set node_index = loop.index0 %}
+                                <label for="sel-{{ exp.experiment_uuid }}-{{ node_index }}">Node Select
+                                    ({{ node.nickname }} : {{ node.type.name }}):</label>
+                                <select id="sel-{{ exp.experiment_uuid }}-{{ node_index }}"
+                                        name="sel-{{ exp.experiment_uuid }}-{{ node_index }}">
+                                    {% for node in nodes %}
+                                        <option value="{{ node.hostname }}">{{ node.hostname }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% endfor %}
+                            <button type="button" id="{{ exp.experiment_uuid }}" onclick="buttonPressed()">Start
+                                Experiment
+                            </button>
+                            <script type="text/javascript">
+                                let socket = io();
+
+                                // When the button is pressed, send the experiment start signal
+                                function buttonPressed(event) {
+                                    let button = document.getElementById(event.target.id);
+
+                                    socket.emit('start_exp_press', {
+                                        id: button.id,
+                                        node_assignment: [
+                                            {% for node in exp.nodes %}
+                                                document.getElementById('sel-{{ exp.experiment_uuid }}-{{ node_index }}').value,
+                                            {% endfor %}
+                                        ]
+                                    });
+                                }
+
+                                // Every 1 seconds, check the status of the experiment
+                                setInterval(function () {
+                                    socket.emit('exp_status_request', {id: '{{ exp.experiment_uuid }}'});
+                                }, 1000);
+
+                                // Update the status of the experiment (also check to make sure UUID matches
+                                socket.on('exp_status_update', function (data) {
+                                    let statusElement = document.getElementById('status-{{ exp.experiment_uuid }}');
+
+                                    if (data.id === '{{ exp.experiment_uuid }}')  {
+                                        statusElement.innerHTML = data.status;
+                                    }
+                                });
+                            </script>
+                        </div>
                     </div>
                 </li>
             {% endfor %}
@@ -66,20 +148,6 @@
                                 <p>No results are currently available.</p>
                             {% endif %}
                         </div>
-                        <button type="button" id="{{ exp.experiment_uuid }}" onclick="buttonPressed()">Start Experiment
-                        </button>
-                        <script type="text/javascript">
-                            const socket = io.connect('http://' + document.domain + ':' + location.port);
-
-                            function buttonPressed(event) {
-                                let buttonId = event.target.id; // Get the ID of the button
-                                socket.emit('start_exp_press', {id: buttonId});
-                            }
-
-                            socket.on('start_response', function (msg) {
-                                alert(msg.message);
-                            });
-                        </script>
                     </div>
                 </li>
             {% endfor %}

@@ -38,7 +38,7 @@ def create_app(config_class=Config):
     check_and_create_admin()
 
     # SocketIO imports
-    from app.routes.api.node import update_node_type
+    from app.routes.api.node import update_node_type, exp_status_request, start_exp_press
 
     return app
 

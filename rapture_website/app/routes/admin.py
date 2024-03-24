@@ -2,6 +2,7 @@ from flask import render_template, flash, Blueprint
 
 from app.services.node import get_latest_nodes, kube_nodes
 from app.services.auth import admin_required
+from app.services.experiments import admin_experiment_queue
 from app.models import User, Experiment
 
 # Create a Blueprint for auth-related routes
@@ -20,7 +21,7 @@ def admin_view(admin_user: User):
             flash(f"Error: Experiment update failed '{experiment.experiment_uuid}' {str(E)}")
 
     return render_template('admin.html', user=admin_user, nodes=kube_nodes,
-                           experiments=experiments, users=User.get_all())
+                           experiments=experiments, admin_exp=admin_experiment_queue, users=User.get_all())
 
 
 @bp.route('/nodes', methods=['GET'])
