@@ -10,7 +10,7 @@ bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @bp.route('/')
 @admin_required
-def admin(user: User):
+def admin_view(admin_user: User):
     experiments = Experiment.get_all()
 
     for experiment in experiments:
@@ -19,13 +19,13 @@ def admin(user: User):
         except Exception as E:
             flash(f"Error: Experiment update failed '{experiment.experiment_uuid}' {str(E)}")
 
-    return render_template('admin.html', user=user,
+    return render_template('admin.html', user=admin_user, nodes=kube_nodes,
                            experiments=experiments, users=User.get_all())
 
 
 @bp.route('/nodes', methods=['GET'])
 @admin_required
-def show_all_nodes(user: User):
+def node_config_view(user: User):
     try:
         get_latest_nodes()
     except Exception as E:

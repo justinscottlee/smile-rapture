@@ -19,7 +19,26 @@
     </style>
     <h2>Admin</h2>
     <div class="status-pane-div">
-        <h2>Experiments</h2>
+        <h2>Nodes</h2>
+        <a href="{{ url_for('admin.node_config_view') }}">
+            <button>Reset Node Configuration</button>
+        </a>
+        <ul class="status-pane-list">
+            {% for node in nodes %}
+                {% set node_index = loop.index0 %}
+                <li class="status-pane-li">
+                    <div class="status-pane-div">
+                        <h2>Node {{ node_index.index }}</h2>
+                        <p>Type: <strong>{{ node.type }}</strong></p>
+                        <p>Hostname: <strong>{{ node.hostname }}</strong></p>
+                        <p>Last Active: <strong>{{ node.hostname }}</strong></p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="status-pane-div">
+        <h2>All Experiments</h2>
         <ul class="status-pane-list">
             {% for exp in experiments %}
                 <li class="status-pane-li">

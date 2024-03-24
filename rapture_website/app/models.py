@@ -6,6 +6,8 @@ from collections.abc import Mapping
 import time
 import subprocess
 
+from flask import current_app
+
 from app.services.db import user_collection, experiment_collection
 from app.services.kube import batch_v1, core_v1
 
@@ -166,6 +168,11 @@ class Experiment:
     def update(self):
         if self.status == ExperimentStatus.COMPLETED or self.status == ExperimentStatus.STOPPED or self.status == ExperimentStatus.NOT_READY:
             return
+
+        if current_app.config['FAKE_MODE']:
+            self.status = ExperimentStatus.STOPPED
+            return
+
         jobs = batch_v1.list_namespaced_job(self.created_by)
 
         job_list: dict[str, Container] = {}
