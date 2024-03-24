@@ -38,10 +38,16 @@ def create_app(config_class=Config):
     check_and_create_admin()
 
     from app.services.node import load_nodes_from_db
-    load_nodes_from_db()
+    try:
+        load_nodes_from_db()
+    except Exception as E:
+        print(f"Failed to load nodes from db: {E}")
 
     from app.services.experiments import load_experiment_queue_from_db
-    load_experiment_queue_from_db()
+    try:
+        load_experiment_queue_from_db()
+    except Exception as E:
+        print(f"Failed to load experiment queue from db: {E}")
 
     # SocketIO imports
     from app.routes.api.node import update_node_type, exp_status_request, start_exp_press
