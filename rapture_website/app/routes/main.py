@@ -291,7 +291,8 @@ def upload_file(user: User):
 
             # Save the admin experiment queue to the config db collection, but just the experiment UUIDs
             config_collection.update_one({"_id": "admin_experiment_queue"},
-                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}})
+                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}},
+                                         upsert=True)
             break
 
     if not admin_req:

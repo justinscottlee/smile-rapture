@@ -22,7 +22,7 @@ def update_node_type(json):
 
     # Update the kube nodes list in the database, by overwriting the existing kube nodes entry
     config_collection.update_one({"_id": "kube_nodes"},
-                                 {"$set": {"nodes": [kube_node.json() for kube_node in kube_nodes]}})
+                                 {"$set": {"nodes": [kube_node.json() for kube_node in kube_nodes]}}, upsert=True)
 
 
 @socketio.on('start_exp_press')
@@ -49,7 +49,8 @@ def start_exp_press(json):
             admin_experiment_queue.pop(i)
             # Remove the experiment id from the config collection as well
             config_collection.update_one({"_id": "admin_experiment_queue"},
-                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}})
+                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}},
+                                         upsert=True)
 
             print("Removed experiment from queue: ", experiment.experiment_uuid)
             break
