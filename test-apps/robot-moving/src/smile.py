@@ -3,13 +3,20 @@ import time
 
 experiment_start_time = time.time()
 debug = True
+robot_sockets = {}
 
-def __init(user_name: str):
-    global context, socket, debug
+"""The RAPTURE web portal will automatically call this function to initialize the SMILE module with your username and robot names."""
+def __init(user_name: str, robot_names: list[str]):
+    global context, socket, debug, robot_sockets
     debug = False
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://smile-app-svc.{user_name}:5555")
+    socket.connect(f"tcp://rapture-smile-app-svc.{user_name}:5555")
+    for robot_name in robot_names:
+        robot_socket = context.socket(zmq.REQ)
+        robot_socket.connect(f"tcp://{robot_name}-rover-smile-app-svc.{user_name}:5555")
+        robot_sockets[robot_name] = robot_socket
+
 
 """Log a string message or other arbitrary (key, value) data to the SMILE web portal."""
 def log(message: str, level="INFO", **data):
@@ -37,7 +44,8 @@ def get_experiment_id():
     response = socket.recv_json()
     return response["experiment_id"]
 
-def robot_moveforward(move_speed, move_time):
+
+def robot_moveforward(robot_name: str, move_speed: int, move_time: float):
     if debug:
         return
     request = {
@@ -46,11 +54,12 @@ def robot_moveforward(move_speed, move_time):
         "move_speed": move_speed,
         "move_time": move_time
     }
-    socket.send_json(request)
-    response = socket.recv_json()
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
     return response["status"]
 
-def robot_movebackward(move_speed, move_time):
+
+def robot_movebackward(robot_name: str, move_speed: int, move_time: float):
     if debug:
         return
     request = {
@@ -59,11 +68,12 @@ def robot_movebackward(move_speed, move_time):
         "move_speed": move_speed,
         "move_time": move_time
     }
-    socket.send_json(request)
-    response = socket.recv_json()
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
     return response["status"]
 
-def robot_moveright(move_speed, move_time):
+
+def robot_moveright(robot_name: str, move_speed: int, move_time: float):
     if debug:
         return
     request = {
@@ -72,11 +82,12 @@ def robot_moveright(move_speed, move_time):
         "move_speed": move_speed,
         "move_time": move_time
     }
-    socket.send_json(request)
-    response = socket.recv_json()
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
     return response["status"]
 
-def robot_moveleft(move_speed, move_time):
+
+def robot_moveleft(robot_name: str, move_speed: int, move_time: float):
     if debug:
         return
     request = {
@@ -85,6 +96,47 @@ def robot_moveleft(move_speed, move_time):
         "move_speed": move_speed,
         "move_time": move_time
     }
-    socket.send_json(request)
-    response = socket.recv_json()
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
+    return response["status"]
+
+
+def robot_turnright(robot_name: str, turn_speed: int, turn_time: float):
+    if debug:
+        return
+    request = {
+        "type": "TURN",
+        "direction": "RIGHT",
+        "turn_speed": turn_speed,
+        "turn_time": turn_time
+    }
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
+    return response["status"]
+
+
+def robot_turnleft(robot_name: str, turn_speed: int, turn_time: float):
+    if debug:
+        return
+    request = {
+        "type": "TURN",
+        "direction": "LEFT",
+        "turn_speed": turn_speed,
+        "turn_time": turn_time
+    }
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
+    return response["status"]
+
+
+def robot_startvideostream(robot_name: str, address: str, port: str):
+    if debug:
+        return
+    request = {
+        "type": "START_VIDEO_STREAM",
+        "address": address,
+        "port": port
+    }
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
     return response["status"]
