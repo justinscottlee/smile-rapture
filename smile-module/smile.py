@@ -1,5 +1,6 @@
 import zmq
 import time
+import socket
 
 experiment_start_time = time.time()
 debug = True
@@ -141,7 +142,6 @@ def robot_startvideostream(robot_name: str, port: str):
         "port": port
     }
     robot_sockets[robot_name].send_json(request)
-    socket = context.socket(zmq.SUB)
-    socket.connect(f"tcp://{robot_address}:{port}")
-    socket.setsockopt_string(zmq.SUBSCRIBE, "")
+    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket.connect((f"{robot_address}", int(port)))
     return socket
