@@ -204,7 +204,8 @@ class Experiment:
         if any_jobs_failed:
             self.status = ExperimentStatus.STOPPED
             subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
-        
+
+        print("updated:", self)
         experiment_collection.update_one({"_id": self.experiment_uuid}, {"$set": self.json()})
 
     @classmethod
