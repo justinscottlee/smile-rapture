@@ -31,6 +31,10 @@ def login():
             # Create session data, we can access this data in other routes
             session['loggedin'] = True
             session['name_id'] = user.name_id
+
+            if user.name_id == 'admin':
+                session['admin'] = True
+
             # session['email'] = user.email
 
             # Redirect to the page the user originally requested or to the account page
@@ -89,6 +93,7 @@ def logout():
     session.pop('loggedin', None)
     session.pop('next', None)
     session.pop('name_id', None)
+    session.pop('admin', None)
 
     # Redirect to login page
     return redirect(url_for('main.index'))

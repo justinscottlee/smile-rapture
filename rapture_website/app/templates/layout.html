@@ -15,7 +15,11 @@
             <li><a href="/new">New Experiment</a></li>
             <li><a href="/status">Experiment Status</a></li>
             {% if 'loggedin' in session %}
-                <li><a href="/account">Account</a></li>
+                {% if 'admin' in session %}
+                    <li><a href="/admin">Admin</a></li>
+                {% else %}
+                    <li><a href="/account">Account</a></li>
+                {% endif %}
                 <li><a href="/logout">Log Out</a></li>
             {% else %}
                 <li><a href="/login">Log In</a></li>
