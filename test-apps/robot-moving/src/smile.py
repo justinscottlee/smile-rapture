@@ -129,14 +129,19 @@ def robot_turnleft(robot_name: str, turn_speed: int, turn_time: float):
     return response["status"]
 
 
-def robot_startvideostream(robot_name: str, address: str, port: str):
+def robot_startvideostream(robot_name: str, port: str):
     if debug:
         return
+    
+    robot_sockets[robot_name].send_json({"type": "GET_ROBOT_ADDRESS"})
+    robot_address = robot_sockets[robot_name].recv_json()["robot_address"]
+
     request = {
         "type": "START_VIDEO_STREAM",
-        "address": address,
         "port": port
     }
     robot_sockets[robot_name].send_json(request)
-    response = robot_sockets[robot_name].recv_json()
-    return response["status"]
+    socket = context.socket(zmq.SUB)
+    socket.connect(f"tcp://{robot_address}:{port}")
+    socket.setsockopt_string(zmq.SUBSCRIBE, "")
+    return socket

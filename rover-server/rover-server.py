@@ -73,7 +73,8 @@ while True:
     message = socket.recv_json()
     match message["type"]:
         case "START_VIDEO_STREAM":
-            subprocess.Popen("ffmpeg", "-f", "v4l2", "-s", "640x480", "-i", "/dev/video0", "-preset", "ultrafast", "-tune", "zerolatency", "-b", "250k", "-codec", "h264", "-framerate", "15", "-g", "30", "-bf", "1", "-f", "mpegts", f"udp://{message["address"]}:{message["port"]}")
+            ffmpeg_command = f"ffmpeg -f v4l2 -s 640x480 -i /dev/video0 -preset ultrafast -tune zerolatency -b 250k -codec h264 -framerate 15 -g 30 -bf 1 -f mpegts tcp://0.0.0.0:{message['port']}"
+            subprocess.Popen(ffmpeg_command.split())
             socket.send_json({"status": "OK"})
         case "MOVE":
             move_speed: int = message["move_speed"]
