@@ -136,12 +136,15 @@ def robot_startvideostream(robot_name: str, port: str):
     
     robot_sockets[robot_name].send_json({"type": "GET_ROBOT_ADDRESS"})
     robot_address = robot_sockets[robot_name].recv_json()["robot_address"]
+    print("got robot address", robot_address)
 
     request = {
         "type": "START_VIDEO_STREAM",
         "port": port
     }
     robot_sockets[robot_name].send_json(request)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((f"{robot_address}", int(port)))
+    time.sleep(5)
+    sock = context.socket(zmq.SUB)
+    sock.connect(f"tcp://{robot_address}:{port}")
+    print("created socket")
     return sock
