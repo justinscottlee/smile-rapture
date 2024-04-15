@@ -9,7 +9,14 @@ kube_nodes: list[KubernetesNode] = []
 
 def load_nodes_from_db():
     global kube_nodes
-    kube_nodes = [KubernetesNode.from_json(node) for node in config_collection.find_one({"_id": "kube_nodes"})['nodes']]
+    print("Loading nodes from database...")
+
+    for node in config_collection.find_one({"_id": "kube_nodes"})['nodes']:
+        node = KubernetesNode.from_json(node)
+        print(f"Loaded node '{node.hostname}' <{node.type}>")
+        kube_nodes.append(node)
+
+    print(f"Loaded {len(kube_nodes)} nodes from database")
 
 
 def get_latest_nodes():
