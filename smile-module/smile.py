@@ -1,5 +1,9 @@
 import zmq
 import time
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst
+import numpy as np
 
 experiment_start_time = time.time()
 debug = True
@@ -127,3 +131,41 @@ def robot_turnleft(robot_name: str, turn_speed: int, turn_time: float):
     robot_sockets[robot_name].send_json(request)
     response = robot_sockets[robot_name].recv_json()
     return response["status"]
+
+def on_new_sample(sink):
+    sample = sink.emit("pull-sample")
+    if sample:
+        buf = sample.get_buffer()
+        caps = sample.get_caps()
+        structure = caps.get_structure(0)
+        height = structure.get_value("height")
+        width = structure.get_value("width")
+        success, map_info = buf.map(Gst.MapFlags.READ)
+        if not success:
+            return Gst.FlowReturn.ERROR
+
+        frame = np.ndarray(
+            shape=(height,width,3),
+            buffer=map_info.data,
+            dtype=np.uint8
+        )
+        avg_color = frame.mean(axis=(0,1))
+        print(f"Average Color (R, G, B): {avg_color}")
+        buf.unmap(map_info)
+        return Gst.FlowReturn.OK
+    return Gst.FlowReturn.ERROR
+
+def robot_startvideostream(robot_name: str, address: str):
+    if debug:
+        return
+    request = {
+        "type": "START_VIDEO_STREAM",
+        "address": address
+    }
+    robot_sockets[robot_name].send_json(request)
+    response = robot_sockets[robot_name].recv_json()
+    pipeline = Gst.parse_launch("udpsrc port=5560 ! application/x-rtp,encoding-name=H264 ! rtph264depay ! avdec_h264 ! videoconvert ! appsink name=sink emit-signals=True")
+    pipeline.set_state(Gst.State.PLAYING)
+    sink = pipeline.get_by_name("sink")
+    sink.connect("new-sample", on_new_sample)
+    return pipeline
