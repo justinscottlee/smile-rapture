@@ -1,5 +1,6 @@
 import zmq
 import time
+import socket
 
 experiment_start_time = time.time()
 debug = True
@@ -7,11 +8,11 @@ robot_sockets = {}
 
 """The RAPTURE web portal will automatically call this function to initialize the SMILE module with your username and robot names."""
 def __init(user_name: str, robot_names: list[str]):
-    global context, socket, debug, robot_sockets
+    global context, smile_socket, debug, robot_sockets
     debug = False
     context = zmq.Context()
-    socket = context.socket(zmq.REQ)
-    socket.connect(f"tcp://rapture-smile-app-svc.{user_name}:5555")
+    smile_socket = context.socket(zmq.REQ)
+    smile_socket.connect(f"tcp://rapture-smile-app-svc.{user_name}:5555")
     for robot_name in robot_names:
         robot_socket = context.socket(zmq.REQ)
         robot_socket.connect(f"tcp://{robot_name}-rover-smile-app-svc.{user_name}:5555")
@@ -29,8 +30,8 @@ def log(message: str, level="INFO", **data):
         "message": message
     }
     request.update(data)
-    socket.send_json(request)
-    response = socket.recv_json()
+    smile_socket.send_json(request)
+    response = smile_socket.recv_json()
     return response["status"]
 
 """Retrieve the experiment ID."""
@@ -40,8 +41,8 @@ def get_experiment_id():
     request = {
         "type": "GET_EXPERIMENT_ID",
     }
-    socket.send_json(request)
-    response = socket.recv_json()
+    smile_socket.send_json(request)
+    response = smile_socket.recv_json()
     return response["experiment_id"]
 
 
@@ -135,13 +136,15 @@ def robot_startvideostream(robot_name: str, port: str):
     
     robot_sockets[robot_name].send_json({"type": "GET_ROBOT_ADDRESS"})
     robot_address = robot_sockets[robot_name].recv_json()["robot_address"]
+    print("got robot address", robot_address)
 
     request = {
         "type": "START_VIDEO_STREAM",
         "port": port
     }
     robot_sockets[robot_name].send_json(request)
-    socket = context.socket(zmq.SUB)
-    socket.connect(f"tcp://{robot_address}:{port}")
-    socket.setsockopt_string(zmq.SUBSCRIBE, "")
-    return socket
+    time.sleep(5)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((f"{robot_address}", int(port)))
+    print("created socket")
+    return sock
