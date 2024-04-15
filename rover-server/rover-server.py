@@ -1,11 +1,7 @@
 import zmq
 import time
 import makeblock
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
-
-Gst.init(None)
+import subprocess
 
 gst_pipelines = {}
 
@@ -73,17 +69,11 @@ def turn_left(turn_speed: int, turn_time: float):
     time.sleep(turn_time)
     move_stop()
 
-def start_video_stream(address: str):
-    global gst_pipeline
-    if gst_pipelines.get(address) is None:
-        gst_pipelines[address] = Gst.parse_launch(f"v4l2src ! videoconvert ! x264enc tune=zerolatency ! rtph264pay ! udpsink host={address} port=5560")
-
 while True:
     message = socket.recv_json()
     match message["type"]:
         case "START_VIDEO_STREAM":
-            start_video_stream(message["address"])
-            gst_pipelines[message["address"]].set_state(Gst.State.PLAYING)
+            subprocess.Popen("ffmpeg", "-f", "v4l2", "-s", "640x480", "-i", "/dev/video0", "-preset", "ultrafast", "-tune", "zerolatency", "-b", "250k", "-codec", "h264", "-framerate", "15", "-g", "30", "-bf", "1", "-f", "mpegts", f"udp://{message["address"]}:{message["port"]}")
             socket.send_json({"status": "OK"})
         case "MOVE":
             move_speed: int = message["move_speed"]
