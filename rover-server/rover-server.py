@@ -3,8 +3,6 @@ import time
 import makeblock
 import subprocess
 
-gst_pipelines = {}
-
 context = zmq.Context()
 socket = context.socket(zmq.REP)
 socket.bind("tcp://*:5555")
@@ -73,7 +71,10 @@ while True:
     message = socket.recv_json()
     match message["type"]:
         case "START_VIDEO_STREAM":
-            subprocess.Popen("ffmpeg", "-f", "v4l2", "-s", "640x480", "-i", "/dev/video0", "-preset", "ultrafast", "-tune", "zerolatency", "-b", "250k", "-codec", "h264", "-framerate", "15", "-g", "30", "-bf", "1", "-f", "mpegts", f"udp://{message["address"]}:{message["port"]}")
+            
+            videoserver_command = f"python3 rover-videoserver.py 5560"
+            subprocess.Popen(videoserver_command.split())
+            print("started videoserver")
             socket.send_json({"status": "OK"})
         case "MOVE":
             move_speed: int = message["move_speed"]
