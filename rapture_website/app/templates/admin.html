@@ -20,10 +20,17 @@
     </style>
     <h2>Admin</h2>
     <div class="status-pane-div" style="margin-bottom: 20px">
-        <h2>Nodes</h2>
-        <a href="{{ url_for('admin.node_config_view') }}" style="text-decoration: none">
-            <button>Reset Node Configuration</button>
+        <h2>Status</h2>
+        <div>
+            <p>Connected: <strong>{{ kube_connected }}</strong></p>
+            <p>Nodes Alive: <strong>{{ raw_nodes_count }}</strong></p>
+        </div>
+        <a href="{{ url_for('admin.admin_view') }}" style="text-decoration: none">
+            <button onclick="">Update Status</button>
         </a>
+    </div>
+    <div class="status-pane-div" style="margin-bottom: 20px">
+        <h2>Nodes</h2>
         <ul class="status-pane-list">
             {% for node in nodes %}
                 {% set node_index = loop.index0 %}
@@ -35,7 +42,12 @@
                         <p>Last Active: <strong>{{ node.hostname }}</strong></p>
                     </div>
                 </li>
+            {% else %}
+                <p>No nodes found.</p>
             {% endfor %}
+            <a href="{{ url_for('admin.node_config_view') }}" style="text-decoration: none">
+                <button style="background-color: #D32F2F">Reset Node Configuration</button>
+            </a>
         </ul>
     </div>
     <div class="status-pane-div" style="margin-bottom: 20px">
@@ -47,8 +59,10 @@
                             flex-flow: row;
                             justify-content: space-between;">
                         <div>
-                            <h2><a style="text-decoration: none"
-                                   href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
+                            <h2 style="margin-bottom: 0;"><a style="text-decoration: none;"
+                                                             href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a>
+                            </h2>
+                            <h3 style="margin-top: 5px;">{{ exp.name }}</h3>
                             <p>Created by <strong>{{ exp.created_by }}</strong> at
                                 <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
                             <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
@@ -79,7 +93,8 @@
                                     {% endfor %}
                                 </select>
                             {% endfor %}
-                            <button type="button" id="{{ exp.experiment_uuid }}" onclick="buttonPressed('{{ exp.experiment_uuid }}')">Start
+                            <button type="button" id="{{ exp.experiment_uuid }}"
+                                    onclick="buttonPressed('{{ exp.experiment_uuid }}')">Start
                                 Experiment
                             </button>
                             <script type="text/javascript">
@@ -107,7 +122,7 @@
                                 socket.on('exp_status_update', function (data) {
                                     let statusElement = document.getElementById('status-{{ exp.experiment_uuid }}');
 
-                                    if (data.id === '{{ exp.experiment_uuid }}')  {
+                                    if (data.id === '{{ exp.experiment_uuid }}') {
                                         statusElement.innerHTML = data.status;
                                     }
                                 });
@@ -115,6 +130,8 @@
                         </div>
                     </div>
                 </li>
+            {% else %}
+                <p>No experiments are currently in the queue.</p>
             {% endfor %}
         </ul>
     </div>
@@ -123,12 +140,15 @@
         <ul class="status-pane-list">
             {% for exp in experiments %}
                 <li class="status-pane-li">
-                    <div class="status-pane-div" style="background: #f4f4f4; display: flex;
+                    <div class="status-pane-div" style="background: #f4f4f4; {# display: flex;#}
                             flex-flow: row;
                             justify-content: space-between;">
                         <div>
-                            <h2><a style="text-decoration: none"
-                                   href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a></h2>
+                            <h2 style="margin-bottom: 0;"><a style="text-decoration: none;"
+                                                             href="/experiment/{{ exp.experiment_uuid }}">{{ exp.experiment_uuid }}</a>
+                            </h2>
+                            <h3 style="margin-top: 5px;">{{ exp.name }}</h3>
+
                             <p>Created by <strong>{{ exp.created_by }}</strong> at
                                 <strong>{{ ts_formatted(exp.created_at) }}</strong></p>
                             <p>Node Count: <strong>{{ exp.nodes|length }}</strong></p>
@@ -147,9 +167,38 @@
                                 <p>No results are currently available.</p>
                             {% endif %}
                         </div>
+                        <div>
+                            <a>
+                                <button style="background-color: #D32F2F" type="button"
+                                        onclick="deleteExperiment('{{ exp.experiment_uuid }}')">Delete</button>
+                            </a>
+                        </div>
                     </div>
                 </li>
+            {% else %}
+                <p>No experiments found.</p>
             {% endfor %}
+            <script>
+                function deleteExperiment(uuid) {
+                    $.ajax({
+                        url: '/api/exp/delete/',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({uuid: uuid}),
+                        success: function (response) {
+                            if (response.status === 'success') {
+                                alert('Experiment deleted successfully.');
+                                window.location.reload();
+                            } else {
+                                alert('Failed to delete the experiment.');
+                            }
+                        },
+                        error: function () {
+                            alert('Error sending the delete request.');
+                        }
+                    });
+                }
+            </script>
         </ul>
     </div>
 {% endblock %}

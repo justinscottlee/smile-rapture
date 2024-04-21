@@ -18,15 +18,20 @@ def create_app(config_class=Config):
     socketio.init_app(app)
     htmx.init_app(app)
 
+    # Register API blueprint
+    from app.routes.api.experiment import exp_delete
     from app.routes.api import bp as api_bp
     app.register_blueprint(api_bp)
 
+    # Register auth blueprint
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
 
+    # Register main blueprint
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
 
+    # Register admin blueprint
     from app.routes.admin import bp as admin_bp
     app.register_blueprint(admin_bp)
 

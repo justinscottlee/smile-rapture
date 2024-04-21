@@ -1,6 +1,7 @@
 from typing import Mapping, Any, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
+import os
 from uuid import UUID, uuid4
 from collections.abc import Mapping
 import time
@@ -164,6 +165,26 @@ class Experiment:
     created_at: float = field(default_factory=time.time)
     created_by: str = ""
     name: str = "none"
+
+    def delete(self):
+        print("deleting experiment from kubectl...", end=" ")
+
+        try:
+            os.system(f"sudo k3s kubectl delete namespace {self.created_by}")
+            print("done")
+        except Exception as e:
+            print("failed")
+            return False
+
+        print("deleting experiment from db...", end=" ")
+        status = experiment_collection.delete_one({"_id": self.experiment_uuid})
+
+        if status.deleted_count == 0:
+            print("failed")
+            raise False
+
+        print("done")
+        return True
 
     def update(self):
         if self.status == ExperimentStatus.COMPLETED or self.status == ExperimentStatus.STOPPED or self.status == ExperimentStatus.NOT_READY:

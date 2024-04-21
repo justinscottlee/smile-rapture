@@ -19,6 +19,19 @@ def load_nodes_from_db():
     print(f"Loaded {len(kube_nodes)} nodes from database")
 
 
+def get_raw_nodes(alive=False):
+    try:
+        nodes = core_v1.list_node()
+    except Exception as E:
+        print(f"Failed to get raw nodes: {E}")
+        return []
+
+    if alive:
+        return [node for node in nodes.items if node.status.conditions[0].status == 'True']
+
+    return [node for node in nodes.items]
+
+
 def get_latest_nodes():
     global kube_nodes
     if current_app.config['FAKE_MODE']:

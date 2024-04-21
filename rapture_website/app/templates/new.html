@@ -177,19 +177,20 @@
             node.id = `node-${nodeNumber}`;
             node.innerHTML = `
         <h3 style="margin-top: 0;">Node ${nodeNumber}</h3>
-        <div>
+        <div style="display: inline-flex;place-items: center;padding-bottom: 10px; gap: 10px;">
+
+            <label for="node-name-${nodeNumber}">Node Name:</label>
+            <input style="margin: 0;" title="Please input a valid node name following RFC 1123 standard." type="text" id="node-name-${nodeNumber}" pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?" name="node-name-${nodeNumber}" placeholder="Enter unique node name" required>
+
             <label for="node-type-${nodeNumber}">Node Type:</label>
-            <select id="node-type-${nodeNumber}" name="node-type-${nodeNumber}">
+            <select style="margin: 0;" id="node-type-${nodeNumber}" name="node-type-${nodeNumber}">
                 {% for type in current_app.config["NODE_TYPES"] %}
                     <option value="{{ type }}">{{ type }}</option>
                 {% endfor %}
             </select>
-
-            <label for="node-name-${nodeNumber}">Node Name:</label>
-            <input title="Please input a valid node name following RFC 1123 standard." type="text" id="node-name-${nodeNumber}" pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?" name="node-name-${nodeNumber}" placeholder="Enter unique node name" required>
         </div>
         <div class="containers" id="containers-node-${nodeNumber}"></div>
-        <button type="button" onclick="addContainerToNode(${nodeNumber})">Add Container</button>
+        <button class="add-container-button" type="button" onclick="addContainerToNode(${nodeNumber})">Add Container</button>
     `;
 
             const nodeSections = document.getElementById('nodeSections');
@@ -211,15 +212,19 @@
                 <span class="remove-icon" onclick="removeContainerSection(this, ${nodeNumber})">&#10006;</span>
                 <h4>Container ${containerNumber}</h4>
                 <div class="container-details">
-                    <label for="container-name-${nodeNumber}">Container Name:</label>
-                    <input title="Please input a valid subdomain name following RFC 1123 standard." type="text" id="container-name-${nodeNumber}" pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?" name="container-name-${nodeNumber}" placeholder="Enter unique container name" required>
+                    <div style="display: inline-flex;place-items: center;padding-bottom: 10px; gap: 10px;">
+                        <label for="container-name-${nodeNumber}">Container Name:</label>
+                        <input style="margin: 0;" title="Please input a valid subdomain name following RFC 1123 standard." type="text" id="container-name-${nodeNumber}" pattern="[A-Za-z0-9](?:[A-Za-z0-9\\-]{0,61}[A-Za-z0-9])?" name="container-name-${nodeNumber}" placeholder="Enter unique container name" required>
+                    </div>
 
-                    <label for="container-image-${nodeNumber}">Container Image:</label>
-                    <select id="container-image-${nodeNumber}" name="container-image-${nodeNumber}" required>
-                        {% for img in current_app.config["VALID_IMAGES"] %}
-                            <option value="{{ img }}">{{ img }}</option>
-                        {% endfor %}
-                    </select>
+                    <div style="display: inline-flex;place-items: center;padding-bottom: 10px; gap: 10px;">
+                        <label for="container-image-${nodeNumber}">Container Image:</label>
+                        <select style="margin: 0;" id="container-image-${nodeNumber}" name="container-image-${nodeNumber}" required>
+                            {% for img in current_app.config["VALID_IMAGES"] %}
+                                <option value="{{ img }}">{{ img }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
                     <div class="file-upload-wrapper">
                         <label for="code-files-${nodeNumber}">source.zip: </label>
@@ -231,8 +236,10 @@
                         <input type="file" id="req-files-${nodeNumber}" name="req-files-${nodeNumber}" accept=".txt" required>
                     </div>
 
-                    <label for="ports-open-${nodeNumber}">Open Ports (comma-separated, e.g., 80, 443):</label>
-                    <input type="text" id="ports-open-${nodeNumber}" name="ports-open-${nodeNumber}" placeholder="Enter ports here">
+                    <div style="display: inline-flex;place-items: center;padding-bottom: 10px; gap: 10px;">
+                        <label for="ports-open-${nodeNumber}">Open Ports (comma-separated, e.g., 80, 443):</label>
+                        <input style="margin: 0;" type="text" id="ports-open-${nodeNumber}" name="ports-open-${nodeNumber}" placeholder="Enter ports here">
+                    </div>
                 </div>
             `;
 
