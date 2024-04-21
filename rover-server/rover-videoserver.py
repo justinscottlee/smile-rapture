@@ -1,20 +1,16 @@
-import cv2
-import pickle
+import subprocess
 import zmq
 import sys
 
-capture = cv2.VideoCapture(f"udp://0.0.0.0:5560")
-print("created videocapture")
-
 context = zmq.Context()
-sock = context.socket(zmq.PUB)
+sock = context.socket(zmq.PUSH)
 sock.bind(f"tcp://0.0.0.0:{sys.argv[1]}")
 
+ffmpeg_command = f"ffmpeg -f v4l2 -s 640x480 -i /dev/video0 -preset ultrafast -tune zerolatency -b 150k -maxrate 150k -bufsize 150k -codec h264 -framerate 15 -g 30 -bf 1 -f mpegts pipe:1"
+proc = subprocess.Popen(ffmpeg_command.split(), stdout=subprocess.PIPE, stderr=sys.stderr)
+
 while True:
-    ret, frame = capture.read()
-    if ret:
-        print("got frame")
-        sock.send_pyobj(frame)
-        print("sent frame")
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    data = proc.stdout.read(1024)
+    if not data:
         break
+    sock.send(data)

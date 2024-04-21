@@ -147,4 +147,4 @@ def robot_startvideostream(robot_name: str, port: str):
     sock = context.socket(zmq.SUB)
     sock.connect(f"tcp://{robot_address}:{port}")
     print("created socket")
-    return sock
+    return (sock, f"tcp://{robot_address}:{port}")
