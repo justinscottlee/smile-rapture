@@ -94,6 +94,13 @@ def __create_yaml(experiment: Experiment, containers: list[Container]):
                 "backoffLimit": 0
             }
         }
+        if "smile" in container.name:
+            continue
+        else:
+            job_document["spec"]["containers"]["securityContext"] = {"privileged": "true"}
+            job_document["spec"]["containers"]["volumeMounts"] = [{"mountPath": "/dev/video0", "name": "dev-video0"}]
+            job_document["spec"]["volumes"] = [{"name": "dev-video0", "hostPath": {"path": "/dev/video0"}}]
+
         documents.append(job_document)
 
         # Service document if container has ports
