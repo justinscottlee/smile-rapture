@@ -11,6 +11,4 @@ proc = subprocess.Popen(ffmpeg_command.split(), stdout=subprocess.PIPE, stderr=s
 
 while True:
     data = proc.stdout.read(1024)
-    if not data:
-        break
     sock.send(data)

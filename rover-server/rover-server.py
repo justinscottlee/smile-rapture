@@ -71,7 +71,6 @@ while True:
     message = socket.recv_json()
     match message["type"]:
         case "START_VIDEO_STREAM":
-            
             videoserver_command = f"python3 rover-videoserver.py 5560"
             subprocess.Popen(videoserver_command.split())
             print("started videoserver")
