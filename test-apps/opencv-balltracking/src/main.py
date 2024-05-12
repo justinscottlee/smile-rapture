@@ -1,10 +1,13 @@
+import smile
 import time
 
 import cv2
 import numpy as np
 
+print("Starting video capture...", end=" ")
 cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FPS, 15)
+print("Done.")
 
 MIN_CNT_RADIUS = 10
 
@@ -86,10 +89,9 @@ while True:
     
     lr = lr[0] / frame_width
 
-    print(f"max_center: {lr}, max_radius: {target_size}", end=" ")
-    if lr < 0.5:
-        print("Right")
-    elif lr > 0.5:
-        print("Left")
+    if lr < 0.3:
+        smile.robot_turnleft("robo1", 60, 0.035)
+    elif lr > 0.7:
+        smile.robot_turnright("robo1", 60, 0.035)
     else:
-        print("Centered")
+        smile.robot_moveforward("robo1", 40, 0.065)

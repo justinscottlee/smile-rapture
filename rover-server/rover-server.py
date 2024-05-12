@@ -70,11 +70,6 @@ def turn_left(turn_speed: int, turn_time: float):
 while True:
     message = socket.recv_json()
     match message["type"]:
-        case "START_VIDEO_STREAM":
-            videoserver_command = f"python3 rover-videoserver.py 5560"
-            subprocess.Popen(videoserver_command.split())
-            print("started videoserver")
-            socket.send_json({"status": "OK"})
         case "MOVE":
             move_speed: int = message["move_speed"]
             move_time: float = message["move_time"]
