@@ -15,9 +15,13 @@ def exp_delete():
     experiment_uuid = str(request.json['uuid'])
     experiment = Experiment.get_by_id(experiment_uuid)
 
+    if experiment is None:
+        return jsonify({"status": "failed", "message": "Experiment not found"})
+
     deleted = experiment.delete()
 
     if deleted:
+        print(f"Experiment '{experiment_uuid}' deleted")
         return jsonify({"status": "success"})
 
     return jsonify({"status": "failed"})
