@@ -22,3 +22,19 @@ def exp_delete():
 
     return jsonify({"status": "failed"})
 
+
+@api.route('/exp/file_upload/', methods=['POST'])
+def exp_file_upload():
+    experiment_uuid = str(request.json['uuid'])
+    experiment = Experiment.get_by_id(experiment_uuid)
+
+    if experiment is None:
+        return jsonify({"status": "failed", "message": "Experiment not found"})
+
+    file = request.files['file']
+    if file is None or file.filename == '':
+        return jsonify({"status": "failed", "message": "No file selected"})
+
+    experiment.files.append(file)
+
+    return jsonify({"status": "failed"})

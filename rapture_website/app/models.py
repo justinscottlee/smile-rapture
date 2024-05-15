@@ -165,6 +165,7 @@ class Experiment:
     created_at: float = field(default_factory=time.time)
     created_by: str = ""
     name: str = "none"
+    files: list[str] = field(default_factory=list) # never pushed to DB
 
     def delete(self):
         print("deleting experiment from kubectl...", end=" ")
@@ -188,11 +189,6 @@ class Experiment:
 
     def update(self):
         if self.status == ExperimentStatus.COMPLETED or self.status == ExperimentStatus.STOPPED or self.status == ExperimentStatus.NOT_READY:
-            return
-
-        if current_app.config['FAKE_MODE']:
-            self.status = ExperimentStatus.STOPPED
-            experiment_collection.update_one({"_id": self.experiment_uuid}, {"$set": self.json()})
             return
 
         jobs = batch_v1.list_namespaced_job(self.created_by)
@@ -226,7 +222,7 @@ class Experiment:
             self.status = ExperimentStatus.STOPPED
             subprocess.Popen(f"sudo k3s kubectl delete namespace {self.created_by}", shell=True)
 
-        print("updated:", self)
+        print("updated:", self.experiment_uuid)
         experiment_collection.update_one({"_id": self.experiment_uuid}, {"$set": self.json()})
 
     @classmethod
@@ -238,11 +234,18 @@ class Experiment:
             results=[ResultEntry(**result) for result in doc.get('results', [])],
             created_at=float(doc.get('created_at')),
             created_by=str(doc.get('created_by')),
-            name=str(doc.get('name'))
+            name=str(doc.get('name')),
+            files=[]
         )
 
     def json(self):
-        experiment_dict = asdict(self)
+        try:
+            experiment_dict = asdict(self)
+        except Exception as e:
+            print('json conversion failed:', e)
+            return {}
+
+        del experiment_dict['files']
 
         # Use experiment_uuid as the document _id
         experiment_dict['_id'] = str(self.experiment_uuid)
