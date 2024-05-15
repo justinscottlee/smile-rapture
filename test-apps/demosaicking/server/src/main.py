@@ -7,7 +7,7 @@ from demosaic import demosaic
 from dataclasses import dataclass
 
 # cwd + images/
-IMAGES_DIR = 'images/seniordesign/'
+IMAGES_DIR = 'images/'
 
 context = zmq.Context()
 
@@ -18,8 +18,7 @@ class Agent:
     socket: zmq.SyncSocket = None
 
 
-# agents = [Agent(addr="tcp://agent1-svc.admin:5555"), Agent(addr="tcp://agent2-svc.admin:5555")]
-agents = [Agent(addr="tcp://127.0.0.1:5555"), Agent(addr="tcp://127.0.0.1:5556")]
+agents = [Agent(addr="tcp://agent1-svc.admin:5555"), Agent(addr="tcp://agent2-svc.admin:5555")]
 
 def create_sockets(agents):
     """
@@ -86,10 +85,6 @@ def main():
     # program done now. Save image to disk or something?
     for i, image in enumerate(partially_demosaicked_images):
         cv2.imwrite(f"output_{i}.png", image)
-        cv2.imshow(f"output_{i}", image)
-    
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main()
