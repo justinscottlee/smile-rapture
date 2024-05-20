@@ -18,7 +18,7 @@ class Agent:
     socket: zmq.SyncSocket = None
 
 
-agents = [Agent(addr="tcp://agent1-svc.admin:5555"), Agent(addr="tcp://agent2-svc.admin:5555")]
+agents = [Agent(addr="tcp://agent1-svc.admin:5556"), Agent(addr="tcp://agent2-svc.admin:5557")]
 
 def create_sockets(agents):
     """

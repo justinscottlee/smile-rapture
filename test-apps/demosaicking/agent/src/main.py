@@ -1,11 +1,10 @@
-import os
 import zmq
 
 from demosaic import demosaic
 
 context = zmq.Context()
 socket = context.socket(zmq.PAIR)
-socket.bind("tcp://*:5555")
+socket.bind("tcp://*:5556")
 
 
 if __name__ == '__main__':
