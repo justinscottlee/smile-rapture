@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 print("Starting video capture...", end=" ")
-cap = cv2.VideoCapture(0)
+cap = smile.robot_startvideostream()
 cap.set(cv2.CAP_PROP_FPS, 15)
 print("Done.")
 

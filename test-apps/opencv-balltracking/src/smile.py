@@ -1,6 +1,6 @@
 import zmq
 import time
-import socket
+import cv2
 
 experiment_start_time = time.time()
 debug = True
@@ -130,21 +130,9 @@ def robot_turnleft(robot_name: str, turn_speed: int, turn_time: float):
     return response["status"]
 
 
-def robot_startvideostream(robot_name: str, port: str):
+def robot_startvideostream():
     if debug:
         return
     
-    robot_sockets[robot_name].send_json({"type": "GET_ROBOT_ADDRESS"})
-    robot_address = robot_sockets[robot_name].recv_json()["robot_address"]
-    print("got robot address", robot_address)
-
-    request = {
-        "type": "START_VIDEO_STREAM",
-        "port": port
-    }
-    robot_sockets[robot_name].send_json(request)
-    time.sleep(5)
-    sock = context.socket(zmq.PULL)
-    sock.connect(f"tcp://{robot_address}:{port}")
-    print("created socket")
-    return sock
+    cap = cv2.VideoCapture(0)
+    return cap
