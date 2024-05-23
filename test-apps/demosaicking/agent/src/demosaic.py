@@ -10,8 +10,8 @@ def __stitch_images(stitch_candidates):
     for img, kp, desc in stitch_candidates[1:]:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGRA)  # Ensure image has alpha channel
         # Find homography between base image and current image
-        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        matches = matcher.match(base_desc, desc)
+        flann = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5), dict(checks=50))
+        matches = flann.match(base_desc.astype(np.float32), desc.astype(np.float32))
         matches = sorted(matches, key=lambda x: x.distance)
 
         # Extract location of good matches
@@ -57,8 +57,8 @@ def demosaic(images):
     Inputs: A list of grayscale images (with an alpha channel) that may or may not all overlap.
     Outputs: The minimum set of PNG images that are overlapped together with non-overlapping regions filled with alpha=0.
     """
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    orb = cv2.ORB_create(nfeatures=500000)
+    flann = cv2.FlannBasedMatcher(dict(algorithm=1, trees=5), dict(checks=50))
+    orb = cv2.ORB_create(nfeatures=1000000)
     done = False
 
     while not done:
@@ -77,15 +77,21 @@ def demosaic(images):
                 desc2 = key_desc[j][1]
                 if i != j:
                     # Match descriptors
-                    matches_ij = bf.match(key_desc[i][1], key_desc[j][1])
+                    matches_ij = flann.knnMatch(key_desc[i][1].astype(np.float32), key_desc[j][1].astype(np.float32), k=2)
+
+                    good_matches = []
+
+                    for (m, n) in matches_ij:
+                        if m.distance < 0.7 * n.distance:
+                            good_matches.append(m)
 
                     if len(matches_ij) >= 10:
-                        src_pts = np.float32([key_desc[i][0][m.queryIdx].pt for m in matches_ij]).reshape(-1, 1, 2)
-                        dst_pts = np.float32([key_desc[j][0][m.trainIdx].pt for m in matches_ij]).reshape(-1, 1, 2)
+                        src_pts = np.float32([key_desc[i][0][m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+                        dst_pts = np.float32([key_desc[j][0][m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
                         M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
                         print(f"Inliers {i}->{j}: ", np.sum(mask), end="")
-                        if (mask is not None) and (np.sum(mask) < 1000):
+                        if (mask is not None) and (np.sum(mask) < 20):
                             print(" -> Insufficient overlap")
                         else:
                             print(" -> Good Match")

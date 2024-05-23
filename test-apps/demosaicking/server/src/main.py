@@ -2,6 +2,7 @@ import cv2
 import os
 import numpy as np
 import zmq
+import random
 
 from demosaic import demosaic
 from dataclasses import dataclass
@@ -18,7 +19,7 @@ class Agent:
     socket: zmq.SyncSocket = None
 
 
-agents = [Agent(addr="tcp://agent1-svc.admin:5556"), Agent(addr="tcp://agent2-svc.admin:5557")]
+agents = [Agent(addr="tcp://agent1-svc.admin:5556"), Agent(addr="tcp://agent2-svc.admin:5557"), Agent(addr="tcp://agent3-svc.admin:5558"), Agent(addr="tcp://agent4-svc.admin:5559"), Agent(addr="tcp://agent5-svc.admin:5560")]
 
 def create_sockets(agents):
     """
@@ -55,6 +56,8 @@ def distribute_images(images, agents):
     agent_images = []
     for i in range(agent_count):
         agent_images.append([])
+
+    random.shuffle(images)
     
     for i, image in enumerate(images):
         print(f"Assigning image {i} to agent {i % agent_count}")
@@ -70,20 +73,21 @@ def main():
     images = import_images(IMAGES_DIR)
     create_sockets(agents)
 
-    
+    print(f"Distributing {len(images)} images to agents.")
     distribute_images(images, agents)
-
     partially_demosaicked_images = []
-
     for agent in agents:
-        partially_demosaicked_images = partially_demosaicked_images + agent.socket.recv_pyobj()
-
-    print(f"Received {len(partially_demosaicked_images)} partially demosaicked images from agents.")
-    demosaic(partially_demosaicked_images)
-    print(f"Ending with {len(partially_demosaicked_images)} partially demosaicked images.")
+        agent_images = agent.socket.recv_pyobj()
+        partially_demosaicked_images = partially_demosaicked_images + agent_images
+        print(f"Received {len(agent_images)} partial images from agent {agent.addr}")
+    images = partially_demosaicked_images[:]
     
+    print(f"All agents terminates, {len(images)} images left.")
+    demosaic(images)
+    print(f"Ending with {len(images)} partially demosaicked images.")
+
     # program done now. Save image to disk or something?
-    for i, image in enumerate(partially_demosaicked_images):
+    for i, image in enumerate(images):
         cv2.imwrite(f"output_{i}.png", image)
 
 if __name__ == '__main__':
