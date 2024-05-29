@@ -27,7 +27,7 @@ def get_raw_nodes(alive=False):
         return []
 
     if alive:
-        return [node for node in nodes.items if node.status.conditions["Ready"].status == 'True']
+        return [node for node in nodes.items if node.status.conditions[3].status == 'True']
 
     return [node for node in nodes.items]
 

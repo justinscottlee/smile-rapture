@@ -1,8 +1,6 @@
 import zmq
-import time
 import cv2
 
-experiment_start_time = time.time()
 debug = True
 robot_sockets = {}
 
@@ -13,10 +11,12 @@ def __init(user_name: str, robot_names: list[str]):
     context = zmq.Context()
     smile_socket = context.socket(zmq.REQ)
     smile_socket.connect(f"tcp://rapture-smile-app-svc.{user_name}:5555")
+    log("RAPTURE Smile App connected.")
     for robot_name in robot_names:
         robot_socket = context.socket(zmq.REQ)
         robot_socket.connect(f"tcp://{robot_name}-rover-smile-app-svc.{user_name}:5555")
         robot_sockets[robot_name] = robot_socket
+        log(f"Robot {robot_name} connected.")
 
 
 """Log a string message or other arbitrary (key, value) data to the SMILE web portal."""
@@ -25,7 +25,6 @@ def log(message: str, level="INFO", **data):
         return
     request = {
         "type": "LOG_STRING",
-        "timestamp": time.time() - experiment_start_time,
         "level": level,
         "message": message
     }
