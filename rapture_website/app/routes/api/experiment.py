@@ -22,7 +22,7 @@ def exp_deploy():
     if experiment.admin_required():
         return jsonify({"status": "failed", "message": "Admin required"})
 
-    emit('deploy_event', {'msg': 'Deploy Event Received', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'Deploy Event Received', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
     deploy_experiment(experiment)
 
     return jsonify({"status": "success"})

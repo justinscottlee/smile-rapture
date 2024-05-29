@@ -312,6 +312,9 @@ def upload_file(user: User):
                                      {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}},
                                      upsert=True)
 
+    else:
+        deploy_experiment(experiment)
+
     # Add experiment to db
     experiment_collection.insert_one(experiment.json())
 
@@ -320,4 +323,4 @@ def upload_file(user: User):
                                {'$push': {"experiment_ids": experiment.experiment_uuid}})
 
     flash(f'Success: Experiment uploaded successfully')
-    return redirect(url_for('main.show_experiment_next_gen', experiment_id=experiment.experiment_uuid))
+    return redirect(url_for('main.show_experiment', experiment_id=experiment.experiment_uuid))

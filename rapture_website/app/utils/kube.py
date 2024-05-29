@@ -140,11 +140,11 @@ def __select_random_node(node_type: NodeType):
 
 
 def deploy_experiment(experiment: Experiment):
-    emit('deploy_event', {'msg': 'Starting Deploy...', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'Starting Deploy...', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
     os.system(f"sudo k3s kubectl delete namespace {experiment.created_by}")
     print("creating dockerfile...", end=" ")
     __create_dockerfile()
-    emit('deploy_event', {'msg': 'Dockerfile Created', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'Dockerfile Created', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
     print("done")
 
     containers = []
@@ -165,7 +165,7 @@ def deploy_experiment(experiment: Experiment):
     print("creating Rapture Smile App image...", end=" ")
     __generate_image(experiment, rapture_smile_app)
     print("done")
-    emit('deploy_event', {'msg': 'SMILE Helper App Deployed', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'SMILE Helper App Deployed', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
     containers.append(rapture_smile_app)
 
     for node in experiment.nodes:
@@ -211,14 +211,14 @@ def deploy_experiment(experiment: Experiment):
             print("done")
             containers.append(container)
 
-    emit('deploy_event', {'msg': 'App Images Created', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'App Images Created', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
 
     print("creating k3s deployment yaml...", end=" ")
     __create_yaml(experiment, containers)
     print("done")
     print("deploying...", end=" ")
-    emit('deploy_event', {'msg': 'Kubernetes Deploy Started', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'Kubernetes Deploy Started', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
     os.system("sudo k3s kubectl create -f generated.yaml")
     print("done")
     experiment.status = ExperimentStatus.RUNNING
-    emit('deploy_event', {'msg': 'Experiment Running', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
+    # emit('deploy_event', {'msg': 'Experiment Running', 'color': 'green'}, room=f'{experiment.experiment_uuid}')
