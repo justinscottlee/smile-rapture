@@ -64,8 +64,8 @@ class User:
     @classmethod
     def from_json(cls, doc: Mapping[str, Any]) -> 'User':
         return cls(name_id=str(doc.get('name_id')), email=str(doc.get('email')), password=str(doc.get('password')),
-                   experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids', [])], admin=bool(doc.get('admin')),
-                   created_at=float(doc.get('created_at')))
+                   experiment_ids=[str(exp_id) for exp_id in doc.get('experiment_ids', [])],
+                   admin=bool(doc.get('admin')), created_at=float(doc.get('created_at')))
 
     @classmethod
     def get_by_id(cls, name_id: str) -> 'User' or None:
@@ -165,7 +165,15 @@ class Experiment:
     created_at: float = field(default_factory=time.time)
     created_by: str = ""
     name: str = "none"
-    files: list[str] = field(default_factory=list) # never pushed to DB
+    files: list[str] = field(default_factory=list)  # never pushed to DB
+
+    def admin_required(self):
+        admin_req = False
+        for node in self.nodes:
+            if node.type == NodeType.ROVER_PI or node.type == NodeType.DRONE_PI:
+                admin_req = True
+                break
+        return admin_req
 
     def delete(self):
         print("deleting experiment from kubectl...", end=" ")

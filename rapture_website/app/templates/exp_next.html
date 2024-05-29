@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+{% block content %}
+    <style>
+        #messages {
+            display: flex;
+            flex-direction: column-reverse; /* New messages at the top, old at the bottom */
+            margin: 20px;
+            overflow-y: scroll;
+            height: 90vh;
+        }
+
+        .message {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 8px;
+            color: white; /* Better contrast for text on colored backgrounds */
+            width: fit-content;
+        }
+    </style>
+
+    <div class="status-pane-div">
+        <button onclick="deployExperiment('{{ experiment.experiment_uuid }}')">Deploy Experiment</button>
+        <div id="messages"></div>
+    </div>
+    <script>const experimentId = "{{ experiment.experiment_uuid }}";</script>
+    <script src={{ url_for('static', filename='exp.js') }}></script>
+{% endblock %}

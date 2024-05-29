@@ -189,6 +189,27 @@ def show_experiment(user: User, experiment_id: str):
     return render_template('experiment.html', experiment=experiment)
 
 
+@bp.route('/experiment_ng/<experiment_id>')
+@auth_required
+def show_experiment_next_gen(user: User, experiment_id: str):
+    experiment = Experiment.get_by_id(experiment_id)
+
+    if experiment is None:
+        flash(f"Error: Experiment '{experiment_id}' not found")
+        return redirect(url_for('main.index'))
+
+    if experiment.created_by != user.name_id and not user.admin:
+        flash(f"Error: Invalid permissions for experiment '{experiment_id}'")
+        return redirect(url_for('main.index'))
+
+    # try:
+    #     experiment.update()
+    # except Exception as E:
+    #     flash(f"Error: Experiment update failed '{experiment_id}' {str(E)}")
+
+    return render_template('exp_next.html', experiment=experiment)
+
+
 @bp.route('/new')
 @auth_required
 def new(user: User):
@@ -282,23 +303,16 @@ def upload_file(user: User):
 
         experiment.nodes.append(curr_node)  # TODO verify this isn't broken
 
-    # deploy exp
-    admin_req = False
-    for node in experiment.nodes:
-        if node.type == NodeType.ROVER_PI or node.type == NodeType.DRONE_PI:
-            admin_experiment_queue.append(experiment)
-            admin_req = True
+    # If admin required, add to admin queue
+    if experiment.admin_required():
+        admin_experiment_queue.append(experiment)
 
-            # Save the admin experiment queue to the config db collection, but just the experiment UUIDs
-            config_collection.update_one({"_id": "admin_experiment_queue"},
-                                         {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}},
-                                         upsert=True)
-            break
+        # Save the admin experiment queue to the config db collection, but just the experiment UUIDs
+        config_collection.update_one({"_id": "admin_experiment_queue"},
+                                     {"$set": {"queue": [exp.experiment_uuid for exp in admin_experiment_queue]}},
+                                     upsert=True)
 
-    if not admin_req:
-        deploy_experiment(experiment)
-
-    # Add experiment
+    # Add experiment to db
     experiment_collection.insert_one(experiment.json())
 
     # Associate experiment with user
@@ -306,4 +320,4 @@ def upload_file(user: User):
                                {'$push': {"experiment_ids": experiment.experiment_uuid}})
 
     flash(f'Success: Experiment uploaded successfully')
-    return redirect(url_for('main.show_experiment', experiment_id=experiment.experiment_uuid))
+    return redirect(url_for('main.show_experiment_next_gen', experiment_id=experiment.experiment_uuid))
